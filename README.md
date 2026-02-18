@@ -316,7 +316,7 @@ This project is developed strictly for educational and research purposes. It is 
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the Apache 2.0 License.
 
 ---
 
