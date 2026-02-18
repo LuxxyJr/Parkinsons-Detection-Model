@@ -21,8 +21,6 @@ All results are presented through an interactive ten-tab web dashboard deployed 
 
 ## Live Application
 
-> Add your Streamlit Cloud deployment URL here after deploying.
-
 Deployment instructions are provided in the [Deployment](#deployment) section below.
 
 ---
