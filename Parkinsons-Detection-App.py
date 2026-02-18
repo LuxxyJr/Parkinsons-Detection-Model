@@ -53,158 +53,159 @@ st.set_page_config(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  GLOBAL STYLE
+#  GLOBAL STYLE  —  Clean Clinical White
 # ══════════════════════════════════════════════════════════════════════════════
-DARK_BG    = "#07090f"
-PANEL_BG   = "#0b1120"
-PANEL_BG2  = "#0d1428"
-BORDER     = "#112240"
-CYAN       = "#00e5ff"
-CYAN_DIM   = "#007fa8"
-GREEN      = "#00ff9d"
-RED        = "#ff4f6b"
-AMBER      = "#ffb347"
-PURPLE     = "#bf80ff"
-TEXT_MAIN  = "#d4e8f0"
-TEXT_DIM   = "#3d6a82"
-TEXT_MID   = "#7ab0c8"
+BG          = "#f4f6f9"
+WHITE       = "#ffffff"
+NAVY        = "#1e3a5f"
+NAVY_LIGHT  = "#2d5282"
+BLUE        = "#2563eb"
+BLUE_LIGHT  = "#dbeafe"
+GREEN       = "#059669"
+GREEN_LIGHT = "#d1fae5"
+RED         = "#dc2626"
+RED_LIGHT   = "#fee2e2"
+AMBER       = "#d97706"
+AMBER_LIGHT = "#fef3c7"
+PURPLE      = "#7c3aed"
+PURPLE_LIGHT= "#ede9fe"
+BORDER      = "#e2e8f0"
+BORDER_MED  = "#cbd5e1"
+TEXT_MAIN   = "#1e293b"
+TEXT_MID    = "#475569"
+TEXT_DIM    = "#94a3b8"
+PANEL_BG    = WHITE
 
 plt.rcParams.update({
-    "figure.facecolor":  PANEL_BG,
-    "axes.facecolor":    DARK_BG,
-    "axes.edgecolor":    BORDER,
+    "figure.facecolor":  WHITE,
+    "axes.facecolor":    WHITE,
+    "axes.edgecolor":    BORDER_MED,
     "axes.labelcolor":   TEXT_MID,
-    "axes.titlecolor":   CYAN,
+    "axes.titlecolor":   NAVY,
     "text.color":        TEXT_MAIN,
     "xtick.color":       TEXT_DIM,
     "ytick.color":       TEXT_DIM,
     "grid.color":        BORDER,
     "grid.linestyle":    "--",
-    "grid.alpha":        0.6,
-    "font.family":       "monospace",
+    "grid.alpha":        0.8,
+    "font.family":       "DejaVu Sans",
     "axes.titlesize":    11,
+    "axes.titleweight":  "bold",
     "axes.labelsize":    9,
     "xtick.labelsize":   8,
     "ytick.labelsize":   8,
     "legend.fontsize":   8,
-    "legend.facecolor":  PANEL_BG,
+    "legend.facecolor":  WHITE,
     "legend.edgecolor":  BORDER,
+    "axes.spines.top":   False,
+    "axes.spines.right": False,
 })
 
-CMAP_PD     = LinearSegmentedColormap.from_list("pd", [DARK_BG, RED],    N=256)
-CMAP_HEALTH = LinearSegmentedColormap.from_list("h",  [DARK_BG, GREEN],  N=256)
-CMAP_MAIN   = LinearSegmentedColormap.from_list("m",  [GREEN, DARK_BG, RED], N=256)
+CMAP_PD     = LinearSegmentedColormap.from_list("pd", [WHITE, RED],    N=256)
+CMAP_HEALTH = LinearSegmentedColormap.from_list("h",  [WHITE, GREEN],  N=256)
+CMAP_MAIN   = LinearSegmentedColormap.from_list("m",  [GREEN, "#f8fafc", RED], N=256)
 
-st.markdown(f"""
+st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
 
-html, body, [class*="css"], .stApp {{
-    font-family: 'Exo 2', sans-serif;
-    background-color: {DARK_BG};
-    color: {TEXT_MAIN};
-}}
-div[data-testid="stSidebar"] {{
-    background: #060810;
-    border-right: 1px solid {BORDER};
-}}
-div[data-testid="stSidebar"] * {{ color: {TEXT_MID}; }}
-.stTabs [data-baseweb="tab-list"] {{
-    background: {PANEL_BG};
-    border-radius: 2px;
-    gap: 2px;
-    border-bottom: 2px solid {BORDER};
-}}
-.stTabs [data-baseweb="tab"] {{
-    font-family: 'Share Tech Mono', monospace;
-    letter-spacing: 2px; font-size: 0.72rem;
-    color: {TEXT_DIM}; background: transparent;
-    padding: 8px 16px; border: none;
-}}
-.stTabs [aria-selected="true"] {{
-    color: {CYAN} !important;
-    border-bottom: 2px solid {CYAN} !important;
-    background: rgba(0,229,255,0.05) !important;
-}}
-.stButton>button {{
-    font-family: 'Share Tech Mono', monospace;
-    letter-spacing: 2px; font-size: 0.75rem;
-    border: 1px solid {CYAN_DIM}; color: {CYAN};
-    background: rgba(0,229,255,0.06);
-    transition: all 0.2s;
-}}
-.stButton>button:hover {{
-    border-color: {CYAN}; background: rgba(0,229,255,0.15);
-    box-shadow: 0 0 16px rgba(0,229,255,0.25);
-}}
-.stSelectbox>div>div, .stSlider>div {{
-    background: {PANEL_BG2} !important;
-}}
-.card {{
-    background: {PANEL_BG};
-    border: 1px solid {BORDER};
-    border-radius: 4px;
-    padding: 18px 22px;
+html, body, [class*="css"], .stApp {
+    font-family: 'DM Sans', sans-serif;
+    background-color: #f4f6f9;
+    color: #1e293b;
+}
+div[data-testid="stSidebar"] {
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+}
+.stTabs [data-baseweb="tab-list"] {
+    background: #ffffff;
+    border-bottom: 2px solid #e2e8f0;
+    gap: 0;
+}
+.stTabs [data-baseweb="tab"] {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600; font-size: 0.82rem;
+    color: #94a3b8; background: transparent;
+    padding: 10px 22px; border: none;
+    letter-spacing: 0.2px;
+}
+.stTabs [aria-selected="true"] {
+    color: #1e3a5f !important;
+    border-bottom: 2px solid #1e3a5f !important;
+    background: transparent !important;
+    margin-bottom: -2px;
+}
+.stButton>button {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600; font-size: 0.85rem;
+    border: 2px solid #1e3a5f; color: #ffffff;
+    background: #1e3a5f; border-radius: 6px;
+    padding: 10px 24px;
+    transition: all 0.2s; letter-spacing: 0.3px;
+}
+.stButton>button:hover {
+    background: #2d5282; border-color: #2d5282;
+    box-shadow: 0 4px 14px rgba(30,58,95,0.3);
+    transform: translateY(-1px);
+}
+.card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 18px;
     text-align: center;
-    position: relative;
-    overflow: hidden;
-}}
-.card::before {{
-    content: '';
-    position: absolute; top: 0; left: 0;
-    width: 100%; height: 2px;
-}}
-.card-cyan::before  {{ background: {CYAN}; box-shadow: 0 0 10px {CYAN}88; }}
-.card-green::before {{ background: {GREEN}; box-shadow: 0 0 10px {GREEN}88; }}
-.card-red::before   {{ background: {RED}; box-shadow: 0 0 10px {RED}88; }}
-.card-amber::before {{ background: {AMBER}; box-shadow: 0 0 10px {AMBER}88; }}
-.card-purple::before{{ background: {PURPLE}; box-shadow: 0 0 10px {PURPLE}88; }}
-.metric-val {{
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 2.1rem; font-weight: 700;
-    line-height: 1; margin-bottom: 4px;
-}}
-.metric-label {{
-    font-size: 0.65rem; letter-spacing: 3px;
-    text-transform: uppercase; color: {TEXT_DIM};
-}}
-.section-title {{
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.7rem; letter-spacing: 4px;
-    color: {CYAN_DIM}; text-transform: uppercase;
-    border-bottom: 1px solid {BORDER};
-    padding-bottom: 6px; margin-bottom: 16px;
-}}
-.result-pd {{
-    background: rgba(255,79,107,0.08);
-    border: 2px solid {RED};
-    border-radius: 6px; padding: 24px;
-    text-align: center;
-}}
-.result-healthy {{
-    background: rgba(0,255,157,0.08);
-    border: 2px solid {GREEN};
-    border-radius: 6px; padding: 24px;
-    text-align: center;
-}}
-.tag-pd      {{ background: rgba(255,79,107,0.2); color:{RED}; padding:2px 10px; border-radius:2px; font-family:monospace; font-size:0.75rem; }}
-.tag-healthy {{ background: rgba(0,255,157,0.2); color:{GREEN}; padding:2px 10px; border-radius:2px; font-family:monospace; font-size:0.75rem; }}
-.info-box {{
-    background: rgba(0,229,255,0.05);
-    border: 1px solid {BORDER};
-    border-left: 3px solid {CYAN};
-    padding: 12px 16px; border-radius: 2px;
-    font-size: 0.82rem; line-height: 1.7;
-}}
-.warn-box {{
-    background: rgba(255,179,71,0.06);
-    border: 1px solid rgba(255,179,71,0.25);
-    border-left: 3px solid {AMBER};
-    padding: 10px 14px; border-radius: 2px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 0.68rem; color: #aa8022; letter-spacing: 1px;
-}}
-hr {{ border-color: {BORDER}; }}
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border-left: 4px solid transparent;
+}
+.card-blue   { border-left-color: #2563eb; }
+.card-green  { border-left-color: #059669; }
+.card-red    { border-left-color: #dc2626; }
+.card-amber  { border-left-color: #d97706; }
+.card-purple { border-left-color: #7c3aed; }
+.card-navy   { border-left-color: #1e3a5f; }
+.metric-val {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem; font-weight: 400;
+    line-height: 1.1; margin-bottom: 4px;
+}
+.metric-label {
+    font-size: 0.68rem; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: #94a3b8;
+}
+.section-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: #94a3b8;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 8px; margin-bottom: 18px;
+}
+.result-pd {
+    background: #fee2e2; border: 2px solid #dc2626;
+    border-radius: 12px; padding: 28px; text-align: center;
+}
+.result-healthy {
+    background: #d1fae5; border: 2px solid #059669;
+    border-radius: 12px; padding: 28px; text-align: center;
+}
+.tag-pd      { background:#fee2e2; color:#dc2626; padding:3px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; }
+.tag-healthy { background:#d1fae5; color:#059669; padding:3px 12px; border-radius:20px; font-size:0.75rem; font-weight:600; }
+.info-box {
+    background: #dbeafe; border: 1px solid #bfdbfe;
+    border-left: 4px solid #2563eb;
+    padding: 14px 18px; border-radius: 6px;
+    font-size: 0.85rem; line-height: 1.75; color: #1e3a5f;
+}
+.warn-box {
+    background: #fef3c7; border: 1px solid #fde68a;
+    border-left: 4px solid #d97706;
+    padding: 10px 16px; border-radius: 6px;
+    font-size: 0.75rem; color: #92400e; font-weight: 500;
+}
+hr { border-color: #e2e8f0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -238,7 +239,7 @@ FEATURE_META = {
 }
 FEAT_NAMES = list(FEATURE_META.keys())
 CATS = ["Frequency","Jitter","Shimmer","Noise","Nonlinear"]
-CAT_COLORS = {"Frequency": CYAN, "Jitter": AMBER, "Shimmer": PURPLE, "Noise": RED, "Nonlinear": GREEN}
+CAT_COLORS = {"Frequency": BLUE, "Jitter": AMBER, "Shimmer": PURPLE, "Noise": RED, "Nonlinear": GREEN}
 
 @st.cache_data
 def load_data(seed=42):
@@ -365,18 +366,18 @@ for f in FEAT_NAMES:
 #  SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown(f"<div style='font-family:Share Tech Mono;font-size:1.1rem;color:{CYAN};letter-spacing:3px;margin-bottom:4px'>🧠 PD DETECTION</div>", unsafe_allow_html=True)
-    st.markdown(f"<div style='font-family:Share Tech Mono;font-size:0.6rem;color:{TEXT_DIM};letter-spacing:2px;margin-bottom:20px'>ML RESEARCH DASHBOARD v2.0</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-family:DM Serif Display,serif;font-size:1.3rem;color:#1e3a5f;margin-bottom:2px;font-weight:400'>🧠 PD Detection</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-family:DM Sans,sans-serif;font-size:0.65rem;color:#94a3b8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:20px'>ML Research Dashboard</div>", unsafe_allow_html=True)
 
     st.markdown("**Select Classifier**")
     selected_model = st.selectbox("Classifier", list(results.keys()), label_visibility="collapsed")
     r = results[selected_model]
 
     st.markdown("---")
-    st.markdown(f"<div style='font-family:Share Tech Mono;font-size:0.65rem;color:{TEXT_DIM};letter-spacing:2px'>SELECTED MODEL STATS</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-family:DM Sans,sans-serif;font-weight:600;font-size:0.65rem;color:{TEXT_DIM};letter-spacing:2px'>Selected Model Stats</div>", unsafe_allow_html=True)
 
     stat_data = [
-        ("Accuracy", f"{r['accuracy']*100:.1f}%", CYAN),
+        ("Accuracy", f"{r['accuracy']*100:.1f}%", BLUE),
         ("F1 Score",  f"{r['f1']:.4f}",            GREEN),
         ("ROC AUC",   f"{r['roc_auc']:.4f}",       AMBER),
         ("MCC",       f"{r['mcc']:.4f}",            PURPLE),
@@ -389,7 +390,7 @@ with st.sidebar:
         </div>""", unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown(f"<div style='font-family:Share Tech Mono;font-size:0.65rem;color:{TEXT_DIM};letter-spacing:2px;margin-bottom:8px'>DATASET INFO</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-family:DM Sans,sans-serif;font-weight:600;font-size:0.65rem;color:{TEXT_DIM};letter-spacing:2px;margin-bottom:8px'>Dataset Info</div>", unsafe_allow_html=True)
     info = [
         ("Source",   "UCI ML Repository"),
         ("Paper",    "Little et al., 2008"),
@@ -418,13 +419,13 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown(f"""
 <div style='padding:20px 0 10px 0'>
-  <div style='font-family:Exo 2,sans-serif;font-size:2.6rem;font-weight:800;color:{CYAN};
-              letter-spacing:5px;text-shadow:0 0 30px {CYAN}66;line-height:1'>
-    PARKINSON'S DETECTION LAB
+  <div style='font-family:Exo 2,sans-serif;font-size:2.6rem;font-weight:800;color:{NAVY};
+              letter-spacing:5px;text-shadow:0 0 30px {NAVY};line-height:1'>
+    Parkinson's Detection Lab
   </div>
-  <div style='font-family:Share Tech Mono,monospace;font-size:0.68rem;color:{TEXT_DIM};
-              letter-spacing:4px;margin-top:6px'>
-    VOICE &amp; GAIT BIOMARKER ANALYSIS ◆ UCI ML REPOSITORY ◆ LITTLE ET AL. 2008 ◆ 22 FEATURES ◆ 8 CLASSIFIERS
+  <div style='font-family:DM Sans,sans-serif;font-size:0.82rem;color:{TEXT_DIM};
+              letter-spacing:0.3px;margin-top:8px'>
+    Voice &amp; Gait Biomarker Analysis &nbsp;·&nbsp; UCI ML Repository &nbsp;·&nbsp; Little et al. 2008 &nbsp;·&nbsp; 22 Features &nbsp;·&nbsp; 8 Classifiers
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -434,15 +435,15 @@ best = max(results, key=lambda x: results[x]["roc_auc"])
 r = results[selected_model]
 cols = st.columns(6)
 metric_cards = [
-    ("ACCURACY",   f"{r['accuracy']*100:.1f}%",   "cyan"),
+    ("ACCURACY",   f"{r['accuracy']*100:.1f}%",   "blue"),
     ("F1 SCORE",   f"{r['f1']:.4f}",               "green"),
     ("ROC AUC",    f"{r['roc_auc']:.4f}",          "amber"),
     ("PRECISION",  f"{r['precision']:.4f}",         "purple"),
     ("RECALL",     f"{r['recall']:.4f}",            "red"),
-    ("10-FOLD CV", f"{r['cv_mean']*100:.1f}±{r['cv_std']*100:.1f}%", "cyan"),
+    ("10-FOLD CV", f"{r['cv_mean']*100:.1f}±{r['cv_std']*100:.1f}%", "blue"),
 ]
 for col, (lbl, val, color) in zip(cols, metric_cards):
-    col.markdown(f'<div class="card card-{color}"><div class="metric-val" style="color:var(--c)">{val}</div><div class="metric-label">{lbl}</div></div>'.replace("var(--c)", dict(cyan=CYAN, green=GREEN, amber=AMBER, purple=PURPLE, red=RED)[color]), unsafe_allow_html=True)
+    col.markdown(f'<div class="card card-{color}"><div class="metric-val" style="color:var(--c)">{val}</div><div class="metric-label">{lbl}</div></div>'.replace("var(--c)", dict(cyan=BLUE, blue=BLUE, green=GREEN, amber=AMBER, purple=PURPLE, red=RED)[color]), unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
@@ -486,7 +487,7 @@ with tabs[0]:
 
         st.markdown('<div class="section-title" style="margin-top:24px">◆ ALL MODELS — ROC OVERVIEW</div>', unsafe_allow_html=True)
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-        pal = [CYAN, GREEN, AMBER, PURPLE, RED, "#ff80aa", "#80ffff", "#aaff80"]
+        pal = [BLUE, GREEN, AMBER, PURPLE, RED, "#ff80aa", "#80ffff", "#aaff80"]
         for (name, res), c in zip(results.items(), pal):
             ax1.plot(res["fpr"], res["tpr"], lw=1.8, color=c, label=f"{name[:18]} ({res['roc_auc']:.3f})")
             ax2.plot(res["pr_r"], res["pr_p"], lw=1.8, color=c)
@@ -502,8 +503,8 @@ with tabs[0]:
         sz = [(df.status==0).sum(), (df.status==1).sum()]
         wedges, _, at = ax.pie(sz, labels=["Healthy","PD"], colors=[GREEN, RED],
                                 autopct="%1.1f%%", startangle=90,
-                                wedgeprops=dict(edgecolor=PANEL_BG, linewidth=2.5, width=0.55))
-        for t in at: t.set_color(DARK_BG); t.set_fontsize(11); t.set_fontweight("bold")
+                                wedgeprops=dict(edgecolor=WHITE, linewidth=2.5, width=0.55))
+        for t in at: t.set_color(WHITE); t.set_fontsize(11); t.set_fontweight("bold")
         ax.set_title("Dataset Distribution", pad=10)
         fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
@@ -512,7 +513,7 @@ with tabs[0]:
         cv_data  = [results[n]["cv_all"]*100 for n in results]
         cv_names = [n.replace(" ","\n") for n in results]
         bp = ax.boxplot(cv_data, labels=cv_names, patch_artist=True, widths=0.5,
-                        medianprops=dict(color=CYAN, lw=2),
+                        medianprops=dict(color=BLUE, lw=2),
                         whiskerprops=dict(color=TEXT_DIM),
                         capprops=dict(color=TEXT_DIM),
                         flierprops=dict(marker="o", markerfacecolor=RED, markersize=3, alpha=0.5))
@@ -549,14 +550,14 @@ with tabs[1]:
         st.markdown('<div class="section-title">◆ CONFUSION MATRIX</div>', unsafe_allow_html=True)
         fig, ax = plt.subplots(figsize=(5, 4.2))
         cm_norm = r["cm"].astype(float) / r["cm"].sum(axis=1, keepdims=True)
-        im = ax.imshow(cm_norm, cmap=LinearSegmentedColormap.from_list("cm",[DARK_BG,"#1a2a4a",CYAN],256), vmin=0, vmax=1)
+        im = ax.imshow(cm_norm, cmap=LinearSegmentedColormap.from_list("cm",[WHITE,"#dbeafe",BLUE],256), vmin=0, vmax=1)
         for i in range(2):
             for j in range(2):
                 count = r["cm"][i,j]
                 pct   = cm_norm[i,j]*100
                 ax.text(j, i, f"{count}\n({pct:.1f}%)", ha="center", va="center",
                         fontsize=14, fontweight="bold",
-                        color=DARK_BG if cm_norm[i,j] > 0.6 else TEXT_MAIN)
+                        color=WHITE if cm_norm[i,j] > 0.6 else NAVY)
         ax.set_xticks([0,1]); ax.set_yticks([0,1])
         ax.set_xticklabels(["Pred: Healthy","Pred: PD"], fontsize=9)
         ax.set_yticklabels(["True: Healthy","True: PD"], fontsize=9)
@@ -570,8 +571,8 @@ with tabs[1]:
     with col2:
         st.markdown('<div class="section-title">◆ ROC + PRECISION-RECALL CURVES</div>', unsafe_allow_html=True)
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(5, 8))
-        ax1.plot(r["fpr"], r["tpr"], color=CYAN, lw=2.5, label=f"AUC = {r['roc_auc']:.4f}")
-        ax1.fill_between(r["fpr"], r["tpr"], alpha=0.1, color=CYAN)
+        ax1.plot(r["fpr"], r["tpr"], color=BLUE, lw=2.5, label=f"AUC = {r['roc_auc']:.4f}")
+        ax1.fill_between(r["fpr"], r["tpr"], alpha=0.1, color=BLUE)
         ax1.plot([0,1],[0,1], color=BORDER, lw=1.2, ls="--", label="Random (0.5)")
         ax1.set(title="ROC Curve", xlabel="False Positive Rate", ylabel="True Positive Rate")
         ax1.legend(loc="lower right"); ax1.grid(True)
@@ -594,9 +595,9 @@ with tabs[1]:
             scoring="accuracy", n_jobs=-1
         )
     fig, ax = plt.subplots(figsize=(10, 3.5))
-    ax.fill_between(train_sz, train_sc.mean(1)-train_sc.std(1), train_sc.mean(1)+train_sc.std(1), alpha=0.15, color=CYAN)
+    ax.fill_between(train_sz, train_sc.mean(1)-train_sc.std(1), train_sc.mean(1)+train_sc.std(1), alpha=0.15, color=BLUE)
     ax.fill_between(train_sz, val_sc.mean(1)-val_sc.std(1),   val_sc.mean(1)+val_sc.std(1),   alpha=0.15, color=GREEN)
-    ax.plot(train_sz, train_sc.mean(1), "o-", color=CYAN,  lw=2, ms=5, label="Training Score")
+    ax.plot(train_sz, train_sc.mean(1), "o-", color=BLUE,  lw=2, ms=5, label="Training Score")
     ax.plot(train_sz, val_sc.mean(1),   "s-", color=GREEN, lw=2, ms=5, label="Cross-Val Score")
     gap = train_sc.mean(1) - val_sc.mean(1)
     ax.set(title=f"{selected_model} — Learning Curves", xlabel="Training Samples", ylabel="Accuracy")
@@ -621,7 +622,7 @@ with tabs[1]:
             accs.append(accuracy_score(r["y_test"], yp_t))
         best_t = thresholds[np.argmax(f1s)]
         fig, ax = plt.subplots(figsize=(5, 3.5))
-        ax.plot(thresholds, f1s,   color=CYAN,   lw=2, label="F1")
+        ax.plot(thresholds, f1s,   color=BLUE,   lw=2, label="F1")
         ax.plot(thresholds, precs, color=GREEN,  lw=2, label="Precision")
         ax.plot(thresholds, recs,  color=AMBER,  lw=2, label="Recall")
         ax.plot(thresholds, accs,  color=PURPLE, lw=2, label="Accuracy", ls="--")
@@ -636,9 +637,9 @@ with tabs[1]:
         fig, ax = plt.subplots(figsize=(5, 3.5))
         colors_bar = [GREEN if v >= cvs.mean() else AMBER for v in cvs]
         bars = ax.bar(range(1, 11), cvs, color=colors_bar, alpha=0.8, edgecolor=BORDER, zorder=2)
-        ax.axhline(cvs.mean(), color=CYAN, lw=2, ls="--", label=f"Mean: {cvs.mean():.2f}%", zorder=3)
-        ax.axhline(cvs.mean()-cvs.std(), color=CYAN, lw=1, ls=":", alpha=0.5, zorder=3)
-        ax.axhline(cvs.mean()+cvs.std(), color=CYAN, lw=1, ls=":", alpha=0.5, label=f"±1σ: {cvs.std():.2f}%", zorder=3)
+        ax.axhline(cvs.mean(), color=BLUE, lw=2, ls="--", label=f"Mean: {cvs.mean():.2f}%", zorder=3)
+        ax.axhline(cvs.mean()-cvs.std(), color=BLUE, lw=1, ls=":", alpha=0.5, zorder=3)
+        ax.axhline(cvs.mean()+cvs.std(), color=BLUE, lw=1, ls=":", alpha=0.5, label=f"±1σ: {cvs.std():.2f}%", zorder=3)
         for bar, v in zip(bars, cvs):
             ax.text(bar.get_x()+bar.get_width()/2, bar.get_height()+0.3, f"{v:.1f}",
                     ha="center", va="bottom", fontsize=7.5, color=TEXT_MID)
@@ -721,7 +722,7 @@ with tabs[2]:
         ax.grid(axis="y")
         cat_c = CAT_COLORS[FEATURE_META[feat]["cat"]]
         for spine in ax.spines.values(): spine.set_edgecolor(cat_c); spine.set_linewidth(1.2)
-    fig.suptitle("Feature Distributions — PD vs Healthy (Violin + Scatter)", y=1.01, color=CYAN, fontsize=11)
+    fig.suptitle("Feature Distributions — PD vs Healthy (Violin + Scatter)", y=1.01, color=BLUE, fontsize=11)
     fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
     col1, col2 = st.columns(2)
@@ -748,7 +749,7 @@ with tabs[2]:
         fig, ax = plt.subplots(figsize=(6, 5))
         mask = np.triu(np.ones_like(corr, dtype=bool), k=1)
         sns.heatmap(corr, annot=True, fmt=".2f",
-                    cmap=LinearSegmentedColormap.from_list("div", [GREEN, DARK_BG, RED], 256),
+                    cmap=LinearSegmentedColormap.from_list("div", [GREEN, WHITE, RED], 256),
                     ax=ax, linewidths=0.4, linecolor=BORDER,
                     annot_kws={"size":6.5}, vmin=-1, vmax=1,
                     cbar_kws={"shrink":0.7, "label":"Pearson r"})
@@ -762,7 +763,7 @@ with tabs[2]:
 # │ TAB 3 — MODEL COMPARISON
 # └─────────────────────────────────────────────────────────────────────────────
 with tabs[3]:
-    pal = [CYAN, GREEN, AMBER, PURPLE, RED, "#ff80aa", "#80ffff", "#aaff80"]
+    pal = [BLUE, GREEN, AMBER, PURPLE, RED, "#ff80aa", "#80ffff", "#aaff80"]
 
     col1, col2 = st.columns(2)
     with col1:
@@ -794,7 +795,7 @@ with tabs[3]:
     angles += angles[:1]
 
     fig, ax = plt.subplots(figsize=(8, 6), subplot_kw=dict(polar=True))
-    ax.set_facecolor(DARK_BG)
+    ax.set_facecolor(WHITE)
     ax.set_theta_offset(np.pi / 2); ax.set_theta_direction(-1)
     ax.set_xticks(angles[:-1]); ax.set_xticklabels(labels_radar, size=9, color=TEXT_MID)
     ax.set_ylim(0.5, 1.0)
@@ -807,7 +808,7 @@ with tabs[3]:
         ax.plot(angles, vals, lw=2, color=c, label=name)
         ax.fill(angles, vals, alpha=0.07, color=c)
     ax.legend(loc="upper right", bbox_to_anchor=(1.35, 1.15), fontsize=7.5)
-    ax.set_title("Multi-Metric Radar — All Models", pad=20, color=CYAN)
+    ax.set_title("Multi-Metric Radar — All Models", pad=20, color=BLUE)
     fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
     st.markdown('<div class="section-title">◆ GROUPED BAR — ALL METRICS</div>', unsafe_allow_html=True)
@@ -817,7 +818,7 @@ with tabs[3]:
     x = np.arange(len(names_b))
     w = 0.15
     fig, ax = plt.subplots(figsize=(13, 4))
-    for i, (mk, ml, c) in enumerate(zip(metric_keys, metric_labels, [CYAN,GREEN,AMBER,PURPLE,RED])):
+    for i, (mk, ml, c) in enumerate(zip(metric_keys, metric_labels, [BLUE,GREEN,AMBER,PURPLE,RED])):
         vals = [results[n][mk] for n in names_b]
         ax.bar(x + i*w, vals, w, label=ml, color=c, alpha=0.8, edgecolor=BORDER)
     ax.set(title="All Models × All Metrics", ylabel="Score", xticks=x+w*2)
@@ -851,7 +852,7 @@ with tabs[4]:
     user_input = {}
     for cat in CATS:
         cat_feats = [f for f in FEAT_NAMES if FEATURE_META[f]["cat"] == cat]
-        st.markdown(f'<div style="font-family:Share Tech Mono;font-size:0.62rem;color:{CAT_COLORS[cat]};letter-spacing:3px;margin:14px 0 8px 0">▶ {cat.upper()} FEATURES</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="font-family:DM Sans,sans-serif;font-weight:600;font-size:0.62rem;color:{CAT_COLORS[cat]};letter-spacing:3px;margin:14px 0 8px 0">▶ {cat.upper()} FEATURES</div>', unsafe_allow_html=True)
         cols = st.columns(min(len(cat_feats), 4))
         for col, f in zip(cols, cat_feats):
             m = FEATURE_META[f]
@@ -883,16 +884,16 @@ with tabs[4]:
             if pred == 1:
                 st.markdown(f"""<div class="result-pd">
                     <div style='font-size:3.5rem'>⚠️</div>
-                    <div style='font-family:Share Tech Mono;font-size:1.4rem;letter-spacing:4px;color:{RED}'>PD DETECTED</div>
-                    <div style='font-size:2rem;font-weight:800;color:{RED};font-family:Share Tech Mono'>{proba[1]*100:.1f}%</div>
+                    <div style='font-family:DM Sans,sans-serif;font-weight:600;font-size:1.4rem;letter-spacing:4px;color:{RED}'>PD DETECTED</div>
+                    <div style='font-size:2.2rem;font-weight:700;color:{RED};font-family:DM Serif Display,serif'>{proba[1]*100:.1f}%</div>
                     <div style='color:{TEXT_DIM};font-size:0.72rem;letter-spacing:2px'>PROBABILITY — {diag_model.upper()}</div>
                     <div style='margin-top:12px;color:{TEXT_DIM};font-size:0.75rem'>Ensemble avg: <span style='color:{RED}'>{ensemble_prob*100:.1f}%</span></div>
                 </div>""", unsafe_allow_html=True)
             else:
                 st.markdown(f"""<div class="result-healthy">
                     <div style='font-size:3.5rem'>✅</div>
-                    <div style='font-family:Share Tech Mono;font-size:1.4rem;letter-spacing:4px;color:{GREEN}'>HEALTHY</div>
-                    <div style='font-size:2rem;font-weight:800;color:{GREEN};font-family:Share Tech Mono'>{proba[0]*100:.1f}%</div>
+                    <div style='font-family:DM Sans,sans-serif;font-weight:600;font-size:1.4rem;letter-spacing:4px;color:{GREEN}'>HEALTHY</div>
+                    <div style='font-size:2.2rem;font-weight:700;color:{GREEN};font-family:DM Serif Display,serif'>{proba[0]*100:.1f}%</div>
                     <div style='color:{TEXT_DIM};font-size:0.72rem;letter-spacing:2px'>CONFIDENCE — {diag_model.upper()}</div>
                     <div style='margin-top:12px;color:{TEXT_DIM};font-size:0.75rem'>Ensemble avg: <span style='color:{GREEN}'>{(1-ensemble_prob)*100:.1f}%</span></div>
                 </div>""", unsafe_allow_html=True)
@@ -902,7 +903,7 @@ with tabs[4]:
             for name, vote in votes.items():
                 icon = f'<span style="color:{RED}">⚠ PD</span>' if vote==1 else f'<span style="color:{GREEN}">✓ OK</span>'
                 st.markdown(f'<div style="display:flex;justify-content:space-between;font-size:0.78rem;padding:4px 0;border-bottom:1px solid {BORDER}"><span style="color:{TEXT_MID}">{name}</span>{icon}</div>', unsafe_allow_html=True)
-            st.markdown(f'<br><div style="font-family:Share Tech Mono;font-size:0.9rem">PD votes: <span style="color:{RED}">{pd_votes}/{len(results)}</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<br><div style="font-family:DM Sans,sans-serif;font-weight:600;font-size:0.9rem">PD votes: <span style="color:{RED}">{pd_votes}/{len(results)}</span></div>', unsafe_allow_html=True)
 
         with res_col3:
             st.markdown(f'<div class="section-title">◆ CLASS PROBABILITIES</div>', unsafe_allow_html=True)
@@ -911,7 +912,7 @@ with tabs[4]:
             for bar, v in zip(bars, [proba[0], proba[1]]):
                 ax.text(max(bar.get_width()-0.05, 0.02), bar.get_y()+bar.get_height()/2,
                         f"{v*100:.1f}%", va="center", ha="right", fontsize=14, fontweight="bold",
-                        color=DARK_BG if v > 0.3 else TEXT_MAIN)
+                        color=WHITE if v > 0.3 else NAVY)
             ax.set(xlim=[0,1], title=f"{diag_model}"); ax.grid(axis="x"); ax.set_xlabel("Probability")
             fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
@@ -1029,8 +1030,8 @@ with tabs[6]:
         ax.boxplot([perm.importances[p_idx[i]] for i in range(len(p_idx))],
                    vert=False, labels=[FEAT_NAMES[i] for i in p_idx],
                    patch_artist=True,
-                   medianprops=dict(color=CYAN, lw=2),
-                   boxprops=dict(facecolor=CYAN+"22", edgecolor=CYAN),
+                   medianprops=dict(color=BLUE, lw=2),
+                   boxprops=dict(facecolor=BLUE+"22", edgecolor=BLUE),
                    whiskerprops=dict(color=TEXT_DIM),
                    capprops=dict(color=TEXT_DIM),
                    flierprops=dict(marker="o", ms=3, alpha=0.4))
@@ -1054,7 +1055,7 @@ with tabs[6]:
                 tmp = mean_other.copy(); tmp[feat] = val
                 prob = r["clf"].predict_proba(tmp.values.reshape(1,-1))[0][1]
                 pd_probs.append(prob)
-            ax.plot(feat_range, pd_probs, color=CYAN, lw=2.5)
+            ax.plot(feat_range, pd_probs, color=BLUE, lw=2.5)
             ax.axhline(0.5, color=RED, lw=1, ls="--", alpha=0.7)
             ax.fill_between(feat_range, pd_probs, 0.5, where=[p > 0.5 for p in pd_probs],
                             color=RED, alpha=0.12, label=">0.5: PD")
@@ -1062,7 +1063,7 @@ with tabs[6]:
                             color=GREEN, alpha=0.12, label="<0.5: Healthy")
             ax.set(title=feat, xlabel="Normalized value", ylabel="P(PD)", ylim=[0,1])
             ax.grid(True)
-        fig.suptitle("Partial Dependence (top 4 features)", color=CYAN, fontsize=10)
+        fig.suptitle("Partial Dependence (top 4 features)", color=BLUE, fontsize=10)
         fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
     st.markdown('<div class="section-title">◆ DECISION BOUNDARY — PCA 2D PROJECTION</div>', unsafe_allow_html=True)
@@ -1097,12 +1098,12 @@ with tabs[6]:
 
             fig, ax = plt.subplots(figsize=(5.5, 4))
             contourf = ax.contourf(xx, yy, Z, levels=50,
-                                   cmap=LinearSegmentedColormap.from_list("db",[GREEN+"aa",DARK_BG,RED+"aa"],256),
+                                   cmap=LinearSegmentedColormap.from_list("db",[GREEN+"aa",WHITE,RED+"aa"],256),
                                    alpha=0.6)
             ax.contour(xx, yy, Z, levels=[0.5], colors=[TEXT_MAIN], linewidths=2, linestyles="--")
             for label, color, name in [(0, GREEN, "Healthy"), (1, RED, "PD")]:
                 mask = df.status == label
-                ax.scatter(Xp[mask,0], Xp[mask,1], c=color, s=22, edgecolors=DARK_BG, lw=0.5,
+                ax.scatter(Xp[mask,0], Xp[mask,1], c=color, s=22, edgecolors=WHITE, lw=0.5,
                            alpha=0.75, label=name, zorder=4)
             ax.set(title=f"Decision Boundary — {model_name}", xlabel="PC1", ylabel="PC2")
             ax.legend(fontsize=7.5)
@@ -1114,13 +1115,13 @@ with tabs[6]:
     axes = axes.flatten()
     for ax, (name, res) in zip(axes, results.items()):
         cm_n = res["cm"].astype(float) / res["cm"].sum(axis=1, keepdims=True)
-        im = ax.imshow(cm_n, cmap=LinearSegmentedColormap.from_list("cm",[DARK_BG,"#1a2a4a",CYAN],256), vmin=0, vmax=1)
+        im = ax.imshow(cm_n, cmap=LinearSegmentedColormap.from_list("cm",[WHITE,"#dbeafe",BLUE],256), vmin=0, vmax=1)
         for i in range(2):
             for j in range(2):
                 ax.text(j, i, f"{res['cm'][i,j]}\n({cm_n[i,j]*100:.0f}%)",
                         ha="center", va="center", fontsize=8.5, fontweight="bold",
-                        color=DARK_BG if cm_n[i,j] > 0.6 else TEXT_MAIN)
+                        color=NAVY if cm_n[i,j] > 0.6 else TEXT_MAIN)
         ax.set(title=f"{name}\nACC:{res['accuracy']*100:.1f}%", xticks=[0,1], yticks=[0,1])
         ax.set_xticklabels(["H","PD"],fontsize=8); ax.set_yticklabels(["H","PD"],fontsize=8)
-    fig.suptitle("Confusion Matrices — All Classifiers", color=CYAN, fontsize=11, y=1.01)
+    fig.suptitle("Confusion Matrices — All Classifiers", color=BLUE, fontsize=11, y=1.01)
     fig.tight_layout(); st.pyplot(fig); plt.close(fig)
