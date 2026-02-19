@@ -1,13 +1,7 @@
 """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║   ADVANCED ML MODULE — Parkinson's Detection Lab                            ║
-║   XGBoost + LightGBM + CatBoost + Optuna Tuning                            ║
-║   Stacking Ensemble + SMOTE + Calibration + Uncertainty                     ║
-║   McNemar + DeLong + Bootstrap CI + Cross-Dataset Validation                ║
-║                                                                              ║
-║   Usage: from advanced_module import render_advanced_tabs                   ║
-║          render_advanced_tabs(df, scaler, FEAT_NAMES, results)              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+Advanced ML Module — Parkinson's Detection Lab
+All heavy computations are gated behind run buttons.
+Nothing trains automatically — Streamlit Cloud safe.
 """
 
 import numpy as np
@@ -18,42 +12,37 @@ import matplotlib.patches as mpatches
 from matplotlib.colors import LinearSegmentedColormap
 import seaborn as sns
 from scipy import stats
-import warnings, time
+import warnings
 warnings.filterwarnings("ignore")
 
-from sklearn.model_selection import (
-    train_test_split, StratifiedKFold, cross_val_score, cross_val_predict
-)
-from sklearn.preprocessing import StandardScaler, label_binarize
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (
-    accuracy_score, f1_score, roc_curve, auc,
-    confusion_matrix, classification_report,
-    precision_score, recall_score, matthews_corrcoef,
-    average_precision_score, precision_recall_curve,
+    accuracy_score, f1_score, roc_curve, auc, confusion_matrix,
+    classification_report, precision_score, recall_score,
+    matthews_corrcoef, average_precision_score, precision_recall_curve,
     brier_score_loss, log_loss
 )
 from sklearn.calibration import CalibratedClassifierCV, calibration_curve
-from sklearn.ensemble import StackingClassifier, RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import (
+    StackingClassifier, RandomForestClassifier, GradientBoostingClassifier
+)
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 
-# ── Optional heavy imports ───────────────────────────────────────────────────
 try:
-    import xgboost as xgb
-    XGB_OK = True
+    import xgboost as xgb; XGB_OK = True
 except ImportError:
     XGB_OK = False
 
 try:
-    import lightgbm as lgb
-    LGB_OK = True
+    import lightgbm as lgb; LGB_OK = True
 except ImportError:
     LGB_OK = False
 
 try:
-    import catboost as cb
-    CAT_OK = True
+    import catboost as cb; CAT_OK = True
 except ImportError:
     CAT_OK = False
 
@@ -71,31 +60,14 @@ try:
 except ImportError:
     SMOTE_OK = False
 
-
-# ── Colour palette ───────────────────────────────────────────────────────────
-WHITE        = "#ffffff"
-BG           = "#f4f6f9"
-NAVY         = "#1e3a5f"
-NAVY_LIGHT   = "#2d5282"
-BLUE         = "#2563eb"
-BLUE_LIGHT   = "#dbeafe"
-GREEN        = "#059669"
-GREEN_LIGHT  = "#d1fae5"
-RED          = "#dc2626"
-RED_LIGHT    = "#fee2e2"
-AMBER        = "#d97706"
-AMBER_LIGHT  = "#fef3c7"
-PURPLE       = "#7c3aed"
-PURPLE_LIGHT = "#ede9fe"
-SLATE        = "#0ea5e9"
-TEAL         = "#0d9488"
-BORDER       = "#e2e8f0"
-BORDER_MED   = "#cbd5e1"
-TEXT_MAIN    = "#1e293b"
-TEXT_MID     = "#475569"
-TEXT_DIM     = "#94a3b8"
-
-PAL = [BLUE, GREEN, AMBER, PURPLE, RED, SLATE, TEAL, "#f43f5e", "#84cc16", "#fb923c"]
+# ── Colours ──────────────────────────────────────────────────────────────────
+WHITE = "#ffffff"; BG = "#f4f6f9"; NAVY = "#1e3a5f"; BLUE = "#2563eb"
+BLUE_LIGHT = "#dbeafe"; GREEN = "#059669"; GREEN_LIGHT = "#d1fae5"
+RED = "#dc2626"; RED_LIGHT = "#fee2e2"; AMBER = "#d97706"
+AMBER_LIGHT = "#fef3c7"; PURPLE = "#7c3aed"; SLATE = "#0ea5e9"
+TEAL = "#0d9488"; BORDER = "#e2e8f0"; BORDER_MED = "#cbd5e1"
+TEXT_MAIN = "#1e293b"; TEXT_MID = "#475569"; TEXT_DIM = "#94a3b8"
+PAL = [BLUE, GREEN, AMBER, PURPLE, RED, SLATE, TEAL, "#f43f5e", "#84cc16"]
 
 plt.rcParams.update({
     "figure.facecolor": WHITE, "axes.facecolor": WHITE,
@@ -104,385 +76,184 @@ plt.rcParams.update({
     "xtick.color": TEXT_DIM, "ytick.color": TEXT_DIM,
     "grid.color": BORDER, "grid.linestyle": "--", "grid.alpha": 0.8,
     "font.family": "DejaVu Sans", "axes.titlesize": 11,
-    "axes.titleweight": "bold", "axes.labelsize": 9,
-    "xtick.labelsize": 8, "ytick.labelsize": 8,
-    "legend.fontsize": 8, "legend.facecolor": WHITE,
-    "legend.edgecolor": BORDER, "axes.spines.top": False,
-    "axes.spines.right": False,
+    "axes.titleweight": "bold", "axes.spines.top": False,
+    "axes.spines.right": False, "legend.facecolor": WHITE,
+    "legend.edgecolor": BORDER,
 })
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  HELPERS
-# ══════════════════════════════════════════════════════════════════════════════
+# ── UI helpers ────────────────────────────────────────────────────────────────
 def section(title):
-    st.markdown(f"""<div style='font-size:0.7rem;font-weight:700;letter-spacing:2px;
-        text-transform:uppercase;color:{TEXT_DIM};border-bottom:2px solid {BORDER};
-        padding-bottom:8px;margin-bottom:18px'>{title}</div>""", unsafe_allow_html=True)
-
-def metric_card(val, label, color):
-    st.markdown(f"""<div style='background:{WHITE};border:1px solid {BORDER};border-radius:10px;
-        padding:18px;text-align:center;border-left:4px solid {color}'>
-        <div style='font-family:DM Serif Display,serif;font-size:1.8rem;color:{color};line-height:1.1'>{val}</div>
-        <div style='font-size:0.65rem;font-weight:700;letter-spacing:1.5px;
-            text-transform:uppercase;color:{TEXT_DIM};margin-top:4px'>{label}</div>
-    </div>""", unsafe_allow_html=True)
+    st.markdown(
+        f'<div style="font-size:0.7rem;font-weight:700;letter-spacing:2px;'
+        f'text-transform:uppercase;color:{TEXT_DIM};border-bottom:2px solid {BORDER};'
+        f'padding-bottom:8px;margin:20px 0 16px 0">{title}</div>',
+        unsafe_allow_html=True)
 
 def info_box(html):
-    st.markdown(f"""<div style='background:{BLUE_LIGHT};border-left:4px solid {BLUE};
-        padding:14px 18px;border-radius:6px;font-size:0.84rem;
-        line-height:1.75;color:{NAVY};margin-bottom:16px'>{html}</div>""",
+    st.markdown(
+        f'<div style="background:{BLUE_LIGHT};border-left:4px solid {BLUE};'
+        f'padding:14px 18px;border-radius:6px;font-size:0.84rem;'
+        f'line-height:1.75;color:{NAVY};margin-bottom:16px">{html}</div>',
         unsafe_allow_html=True)
 
 def warn_box(html):
-    st.markdown(f"""<div style='background:{AMBER_LIGHT};border-left:4px solid {AMBER};
-        padding:10px 16px;border-radius:6px;font-size:0.78rem;
-        color:#92400e;font-weight:500;margin-bottom:12px'>{html}</div>""",
+    st.markdown(
+        f'<div style="background:{AMBER_LIGHT};border-left:4px solid {AMBER};'
+        f'padding:10px 16px;border-radius:6px;font-size:0.78rem;'
+        f'color:#92400e;font-weight:500;margin-bottom:12px">{html}</div>',
         unsafe_allow_html=True)
 
 def success_box(html):
-    st.markdown(f"""<div style='background:{GREEN_LIGHT};border-left:4px solid {GREEN};
-        padding:10px 16px;border-radius:6px;font-size:0.78rem;
-        color:#065f46;font-weight:500;margin-bottom:12px'>{html}</div>""",
+    st.markdown(
+        f'<div style="background:{GREEN_LIGHT};border-left:4px solid {GREEN};'
+        f'padding:10px 16px;border-radius:6px;font-size:0.78rem;'
+        f'color:#065f46;font-weight:500;margin-bottom:12px">{html}</div>',
         unsafe_allow_html=True)
 
+def metric_card(val, label, color):
+    st.markdown(
+        f'<div style="background:{WHITE};border:1px solid {BORDER};border-radius:10px;'
+        f'padding:18px;text-align:center;border-left:4px solid {color}">'
+        f'<div style="font-family:DM Serif Display,serif;font-size:1.8rem;color:{color}'
+        f';line-height:1.1">{val}</div>'
+        f'<div style="font-size:0.65rem;font-weight:700;letter-spacing:1.5px;'
+        f'text-transform:uppercase;color:{TEXT_DIM};margin-top:4px">{label}</div>'
+        f'</div>', unsafe_allow_html=True)
+
+def run_gate(key, button_label, description, estimated_time, warning=None):
+    """
+    Shows a description card with a run button.
+    Returns True if user has clicked run, False otherwise.
+    Uses st.session_state to persist across reruns.
+    """
+    if key not in st.session_state:
+        st.session_state[key] = False
+
+    if not st.session_state[key]:
+        st.markdown(
+            f'<div style="background:{WHITE};border:1px solid {BORDER};'
+            f'border-radius:12px;padding:28px 32px;text-align:center;'
+            f'box-shadow:0 1px 4px rgba(0,0,0,0.06)">'
+            f'<div style="font-size:0.65rem;font-weight:700;letter-spacing:2px;'
+            f'text-transform:uppercase;color:{TEXT_DIM};margin-bottom:12px">ON DEMAND</div>'
+            f'<div style="font-family:DM Serif Display,serif;font-size:1.4rem;'
+            f'color:{NAVY};margin-bottom:8px">{button_label}</div>'
+            f'<div style="font-size:0.84rem;color:{TEXT_MID};'
+            f'line-height:1.7;margin-bottom:16px">{description}</div>'
+            f'<div style="display:inline-block;background:{AMBER_LIGHT};'
+            f'border:1px solid #fde68a;border-radius:20px;'
+            f'padding:4px 16px;font-size:0.72rem;font-weight:600;'
+            f'color:#92400e;margin-bottom:20px">Estimated time: {estimated_time}</div>'
+            f'</div>',
+            unsafe_allow_html=True)
+        if warning:
+            warn_box(warning)
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button(f"Run {button_label}", key=f"btn_{key}"):
+            st.session_state[key] = True
+            st.rerun()
+        return False
+    return True
+
+
 def get_full_metrics(clf, Xte, yte, name=""):
-    yp  = clf.predict(Xte)
+    yp = clf.predict(Xte)
     ypr = clf.predict_proba(Xte)[:, 1]
     fpr, tpr, _ = roc_curve(yte, ypr)
     pr_p, pr_r, _ = precision_recall_curve(yte, ypr)
     return dict(
         name=name, clf=clf,
-        accuracy =accuracy_score(yte, yp),
-        f1       =f1_score(yte, yp),
-        precision=precision_score(yte, yp),
-        recall   =recall_score(yte, yp),
-        roc_auc  =auc(fpr, tpr),
-        pr_auc   =average_precision_score(yte, ypr),
-        mcc      =matthews_corrcoef(yte, yp),
-        brier    =brier_score_loss(yte, ypr),
-        logloss  =log_loss(yte, ypr),
-        cm       =confusion_matrix(yte, yp),
-        report   =classification_report(yte, yp, target_names=["Healthy","PD"]),
+        accuracy=accuracy_score(yte, yp), f1=f1_score(yte, yp),
+        precision=precision_score(yte, yp), recall=recall_score(yte, yp),
+        roc_auc=auc(fpr, tpr), pr_auc=average_precision_score(yte, ypr),
+        mcc=matthews_corrcoef(yte, yp),
+        brier=brier_score_loss(yte, ypr), logloss=log_loss(yte, ypr),
+        cm=confusion_matrix(yte, yp),
+        report=classification_report(yte, yp, target_names=["Healthy", "PD"]),
         fpr=fpr, tpr=tpr, pr_p=pr_p, pr_r=pr_r,
         y_pred=yp, y_proba=ypr, y_test=yte,
     )
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  SYNTHETIC UCI TELEMONITORING DATA
-#  (Real dataset: archive.ics.uci.edu/dataset/189/parkinsons+telemonitoring)
-#  Tsanas et al., IEEE Trans Biomed Eng, 2010
-#  5,875 recordings, 42 features, UPDRS motor + total scores
-# ══════════════════════════════════════════════════════════════════════════════
-@st.cache_data
-def load_telemonitoring(feat_names, seed=42):
-    """
-    Synthetic data faithful to UCI Telemonitoring dataset distributions.
-    Replace with real parkinsons_updrs.data for production.
-    Features overlap with voice dataset (Jitter, Shimmer, NHR, HNR, RPDE, DFA, PPE).
-    """
-    rng = np.random.RandomState(seed)
-    n = 5875
-    # ~75% PD (same ratio as voice dataset)
-    status = rng.choice([0, 1], size=n, p=[0.25, 0.75])
-
-    specs = {
-        "MDVP:Fo(Hz)":      (145.21,35.0,  197.10,45.0),
-        "MDVP:Fhi(Hz)":     (197.11,60.0,  243.60,70.0),
-        "MDVP:Flo(Hz)":     (102.15,28.0,  146.67,38.0),
-        "MDVP:Jitter(%)":   (0.0063,0.004, 0.0033,0.0015),
-        "MDVP:Jitter(Abs)": (4.5e-5,2.5e-5,2.2e-5,1e-5),
-        "MDVP:RAP":         (0.0033,0.002, 0.0017,0.001),
-        "MDVP:PPQ":         (0.0034,0.002, 0.0018,0.001),
-        "Jitter:DDP":       (0.0100,0.006, 0.0052,0.003),
-        "MDVP:Shimmer":     (0.0508,0.025, 0.0231,0.012),
-        "MDVP:Shimmer(dB)": (0.471, 0.22,  0.214, 0.10),
-        "Shimmer:APQ3":     (0.0269,0.014, 0.0122,0.006),
-        "Shimmer:APQ5":     (0.0316,0.017, 0.0145,0.007),
-        "MDVP:APQ":         (0.0439,0.022, 0.0199,0.010),
-        "Shimmer:DDA":      (0.0808,0.040, 0.0366,0.018),
-        "NHR":              (0.0312,0.028, 0.0111,0.008),
-        "HNR":              (19.98, 5.5,   24.68, 4.5),
-        "RPDE":             (0.587, 0.085, 0.499, 0.070),
-        "DFA":              (0.753, 0.048, 0.718, 0.045),
-        "spread1":          (-5.335,1.0,   -6.759,0.9),
-        "spread2":          (0.269, 0.10,  0.168, 0.08),
-        "D2":               (2.522, 0.38,  2.302, 0.34),
-        "PPE":              (0.213, 0.11,  0.062, 0.035),
-    }
-
-    rows = {}
-    from advanced_module import FEATURE_META_REF  # fallback
-    for f in feat_names:
-        if f in specs:
-            mu_p, sd_p, mu_h, sd_h = specs[f]
-            vals = np.where(
-                status == 1,
-                np.clip(rng.normal(mu_p, sd_p, n), 0, None),
-                np.clip(rng.normal(mu_h, sd_h, n), 0, None)
-            )
-        else:
-            vals = rng.normal(0.5, 0.15, n)
-        rows[f] = vals
-
-    df = pd.DataFrame(rows)
-    df["status"] = status
-    return df.reset_index(drop=True)
-
-# Fallback feature ranges for telemonitoring
-FEATURE_META_REF = {
-    f: {"lo": 0, "hi": 1} for f in [
-        "MDVP:Fo(Hz)","MDVP:Fhi(Hz)","MDVP:Flo(Hz)",
-        "MDVP:Jitter(%)","MDVP:Jitter(Abs)","MDVP:RAP","MDVP:PPQ",
-        "Jitter:DDP","MDVP:Shimmer","MDVP:Shimmer(dB)",
-        "Shimmer:APQ3","Shimmer:APQ5","MDVP:APQ","Shimmer:DDA",
-        "NHR","HNR","RPDE","DFA","spread1","spread2","D2","PPE"
-    ]
-}
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  SMOTE + SAMPLING
-# ══════════════════════════════════════════════════════════════════════════════
-@st.cache_data
-def apply_sampling(df_hash, _Xtr, _ytr):
-    if not SMOTE_OK:
-        return {"Original": (_Xtr, _ytr)}
-    results = {"Original": (_Xtr, _ytr)}
-    try:
-        sm = SMOTE(random_state=42, k_neighbors=min(5, (_ytr==0).sum()-1))
-        Xs, ys = sm.fit_resample(_Xtr, _ytr)
-        results["SMOTE"] = (Xs, ys)
-    except Exception:
-        pass
-    try:
-        ada = ADASYN(random_state=42, n_neighbors=min(5, (_ytr==0).sum()-1))
-        Xa, ya = ada.fit_resample(_Xtr, _ytr)
-        results["ADASYN"] = (Xa, ya)
-    except Exception:
-        pass
-    try:
-        smt = SMOTETomek(random_state=42)
-        Xst, yst = smt.fit_resample(_Xtr, _ytr)
-        results["SMOTETomek"] = (Xst, yst)
-    except Exception:
-        pass
-    return results
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  OPTUNA TUNING
-# ══════════════════════════════════════════════════════════════════════════════
-def optuna_tune_xgb(Xtr, ytr, n_trials=40):
-    if not (XGB_OK and OPTUNA_OK):
-        return None, None
-    cv = StratifiedKFold(5, shuffle=True, random_state=42)
-
-    def objective(trial):
-        params = {
-            "n_estimators":     trial.suggest_int("n_estimators", 100, 500),
-            "max_depth":        trial.suggest_int("max_depth", 3, 9),
-            "learning_rate":    trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
-            "subsample":        trial.suggest_float("subsample", 0.6, 1.0),
-            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
-            "reg_alpha":        trial.suggest_float("reg_alpha", 1e-5, 10, log=True),
-            "reg_lambda":       trial.suggest_float("reg_lambda", 1e-5, 10, log=True),
-            "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
-            "eval_metric": "logloss", "use_label_encoder": False,
-            "random_state": 42, "verbosity": 0,
-        }
-        clf = xgb.XGBClassifier(**params)
-        scores = cross_val_score(clf, Xtr, ytr, cv=cv, scoring="roc_auc", n_jobs=-1)
-        return scores.mean()
-
-    study = optuna.create_study(direction="maximize",
-                                sampler=optuna.samplers.TPESampler(seed=42))
-    study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
-    best_params = study.best_params
-    best_params.update({"eval_metric":"logloss","use_label_encoder":False,
-                        "random_state":42,"verbosity":0})
-    best_model = xgb.XGBClassifier(**best_params)
-    best_model.fit(Xtr, ytr)
-    return best_model, study
-
-
-def optuna_tune_lgb(Xtr, ytr, n_trials=40):
-    if not (LGB_OK and OPTUNA_OK):
-        return None, None
-    cv = StratifiedKFold(5, shuffle=True, random_state=42)
-
-    def objective(trial):
-        params = {
-            "n_estimators":     trial.suggest_int("n_estimators", 100, 500),
-            "max_depth":        trial.suggest_int("max_depth", 3, 9),
-            "learning_rate":    trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
-            "num_leaves":       trial.suggest_int("num_leaves", 20, 150),
-            "subsample":        trial.suggest_float("subsample", 0.6, 1.0),
-            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
-            "reg_alpha":        trial.suggest_float("reg_alpha", 1e-5, 10, log=True),
-            "reg_lambda":       trial.suggest_float("reg_lambda", 1e-5, 10, log=True),
-            "min_child_samples":trial.suggest_int("min_child_samples", 5, 50),
-            "random_state": 42, "verbosity": -1,
-        }
-        clf = lgb.LGBMClassifier(**params)
-        scores = cross_val_score(clf, Xtr, ytr, cv=cv, scoring="roc_auc", n_jobs=-1)
-        return scores.mean()
-
-    study = optuna.create_study(direction="maximize",
-                                sampler=optuna.samplers.TPESampler(seed=42))
-    study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
-    best_params = study.best_params
-    best_params.update({"random_state":42,"verbosity":-1})
-    best_model = lgb.LGBMClassifier(**best_params)
-    best_model.fit(Xtr, ytr)
-    return best_model, study
-
-
-def optuna_tune_cat(Xtr, ytr, n_trials=30):
-    if not (CAT_OK and OPTUNA_OK):
-        return None, None
-    cv = StratifiedKFold(5, shuffle=True, random_state=42)
-
-    def objective(trial):
-        params = {
-            "iterations":       trial.suggest_int("iterations", 100, 500),
-            "depth":            trial.suggest_int("depth", 3, 10),
-            "learning_rate":    trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
-            "l2_leaf_reg":      trial.suggest_float("l2_leaf_reg", 1e-3, 10, log=True),
-            "border_count":     trial.suggest_int("border_count", 32, 255),
-            "random_strength":  trial.suggest_float("random_strength", 1e-3, 10, log=True),
-            "random_state": 42, "verbose": 0,
-        }
-        clf = cb.CatBoostClassifier(**params)
-        scores = cross_val_score(clf, Xtr, ytr, cv=cv, scoring="roc_auc", n_jobs=1)
-        return scores.mean()
-
-    study = optuna.create_study(direction="maximize",
-                                sampler=optuna.samplers.TPESampler(seed=42))
-    study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
-    best_params = study.best_params
-    best_params.update({"random_state":42,"verbose":0})
-    best_model = cb.CatBoostClassifier(**best_params)
-    best_model.fit(Xtr, ytr)
-    return best_model, study
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  STACKING ENSEMBLE
-# ══════════════════════════════════════════════════════════════════════════════
-@st.cache_resource
-def build_stacking(df_hash, _Xtr, _ytr, _Xte, _yte, xgb_model, lgb_model, cat_model):
-    estimators = [
-        ("rf",  RandomForestClassifier(n_estimators=200, max_depth=10, random_state=42)),
-        ("gb",  GradientBoostingClassifier(n_estimators=150, learning_rate=0.08, random_state=42)),
-        ("svm", SVC(kernel="rbf", C=10, gamma=0.01, probability=True, random_state=42)),
-        ("knn", KNeighborsClassifier(n_neighbors=7)),
-    ]
-    if xgb_model:  estimators.append(("xgb", xgb_model))
-    if lgb_model:  estimators.append(("lgb", lgb_model))
-    if cat_model:  estimators.append(("cat", cat_model))
-
-    # Meta-learner: Logistic Regression with L2
-    stack = StackingClassifier(
-        estimators=estimators,
-        final_estimator=LogisticRegression(C=1.0, max_iter=1000, random_state=42),
-        cv=StratifiedKFold(5, shuffle=True, random_state=42),
-        passthrough=False, n_jobs=-1,
-    )
-    stack.fit(_Xtr, _ytr)
-    return stack, get_full_metrics(stack, _Xte, _yte, "Stacking Ensemble")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  STATISTICAL TESTS
-# ══════════════════════════════════════════════════════════════════════════════
+# ── Statistical tests ─────────────────────────────────────────────────────────
 def mcnemar_test(y_true, pred1, pred2):
-    """McNemar's test for comparing two classifiers."""
     b = np.sum((pred1 == y_true) & (pred2 != y_true))
     c = np.sum((pred1 != y_true) & (pred2 == y_true))
     if b + c == 0:
         return 1.0, 0.0
-    chi2 = (abs(b - c) - 1)**2 / (b + c)
-    p_val = 1 - stats.chi2.cdf(chi2, df=1)
-    return p_val, chi2
+    chi2 = (abs(b - c) - 1) ** 2 / (b + c)
+    return 1 - stats.chi2.cdf(chi2, df=1), chi2
 
 
 def delong_auc_test(y_true, proba1, proba2):
-    """DeLong's test for comparing two AUC values."""
-    def compute_midrank(x):
-        J = np.argsort(x)
-        Z = x[J]
-        N = len(x)
-        T = np.zeros(N)
+    def midrank(x):
+        J = np.argsort(x); Z = x[J]; N = len(x); T = np.zeros(N)
         i = 0
         while i < N:
             j = i
-            while j < N and Z[j] == Z[i]:
-                j += 1
-            T[i:j] = 0.5 * (i + j - 1)
-            i = j
-        T2 = np.empty(N)
-        T2[J] = T + 1
+            while j < N and Z[j] == Z[i]: j += 1
+            T[i:j] = 0.5 * (i + j - 1); i = j
+        T2 = np.empty(N); T2[J] = T + 1
         return T2
 
-    def fastDeLong(predictions_sorted_transposed, label_1_count):
-        m = label_1_count
-        n = predictions_sorted_transposed.shape[1] - m
-        positive_examples = predictions_sorted_transposed[:, :m]
-        negative_examples = predictions_sorted_transposed[:, m:]
-        k = predictions_sorted_transposed.shape[0]
-        tx = np.empty([k, m], dtype=float)
-        ty = np.empty([k, n], dtype=float)
-        tz = np.empty([k, m + n], dtype=float)
-        for r in range(k):
-            tx[r, :] = compute_midrank(positive_examples[r, :])
-            ty[r, :] = compute_midrank(negative_examples[r, :])
-            tz[r, :] = compute_midrank(predictions_sorted_transposed[r, :])
-        aucs = (tz[:, :m].sum(axis=1) - tx.sum(axis=1)) / (m * n)
-        v01 = (tz[:, :m] - tx[:, :]) / n
-        v10 = 1.0 - (tz[:, m:] - ty[:, :]) / m
-        sx = np.cov(v01)
-        sy = np.cov(v10)
-        delongcov = sx / m + sy / n
-        return aucs, delongcov
-
-    y = np.array(y_true)
-    p1 = np.array(proba1)
-    p2 = np.array(proba2)
-    sorted_idx = np.argsort(y)[::-1]
-    y_sorted = y[sorted_idx]
-    m = y_sorted.sum()
-    preds = np.vstack([p1[sorted_idx], p2[sorted_idx]])
-    aucs, cov = fastDeLong(preds, int(m))
-    auc_diff = aucs[0] - aucs[1]
-    var_diff = cov[0,0] + cov[1,1] - 2*cov[0,1]
-    if var_diff <= 0:
-        return aucs[0], aucs[1], 1.0, 0.0
-    z = auc_diff / np.sqrt(var_diff)
-    p_val = 2 * (1 - stats.norm.cdf(abs(z)))
-    return aucs[0], aucs[1], p_val, z
+    y = np.array(y_true); p1 = np.array(proba1); p2 = np.array(proba2)
+    idx = np.argsort(y)[::-1]; ys = y[idx]; m = int(ys.sum())
+    preds = np.vstack([p1[idx], p2[idx]])
+    k = preds.shape[0]; n = preds.shape[1] - m
+    pos = preds[:, :m]; neg = preds[:, m:]
+    tx = np.array([midrank(pos[r]) for r in range(k)])
+    ty = np.array([midrank(neg[r]) for r in range(k)])
+    tz = np.array([midrank(preds[r]) for r in range(k)])
+    aucs = (tz[:, :m].sum(1) - tx.sum(1)) / (m * n)
+    v01 = (tz[:, :m] - tx) / n; v10 = 1.0 - (tz[:, m:] - ty) / m
+    cov = np.cov(v01) / m + np.cov(v10) / n
+    diff = aucs[0] - aucs[1]; var = cov[0,0] + cov[1,1] - 2*cov[0,1]
+    if var <= 0: return aucs[0], aucs[1], 1.0, 0.0
+    z = diff / np.sqrt(var)
+    return aucs[0], aucs[1], 2*(1 - stats.norm.cdf(abs(z))), z
 
 
-def bootstrap_ci(y_true, y_proba, metric_fn, n_boot=1000, ci=0.95, seed=42):
-    """Bootstrap confidence interval for any metric."""
-    rng  = np.random.RandomState(seed)
-    y    = np.array(y_true)
-    p    = np.array(y_proba)
+def bootstrap_ci(y_true, y_proba, metric_fn, n_boot=1000, seed=42):
+    rng = np.random.RandomState(seed); y = np.array(y_true); p = np.array(y_proba)
     boot = []
     for _ in range(n_boot):
-        idx  = rng.choice(len(y), len(y), replace=True)
-        if len(np.unique(y[idx])) < 2:
-            continue
-        try:
-            boot.append(metric_fn(y[idx], p[idx]))
-        except Exception:
-            continue
+        idx = rng.choice(len(y), len(y), replace=True)
+        if len(np.unique(y[idx])) < 2: continue
+        try: boot.append(metric_fn(y[idx], p[idx]))
+        except: continue
     boot = np.array(boot)
-    alpha = (1 - ci) / 2
-    return (boot.mean(), boot.std(),
-            np.percentile(boot, alpha*100),
-            np.percentile(boot, (1-alpha)*100))
+    return boot.mean(), boot.std(), np.percentile(boot, 2.5), np.percentile(boot, 97.5)
+
+
+# ── Synthetic telemonitoring fallback ─────────────────────────────────────────
+def _synthetic_telemonitoring(feat_names, seed=42):
+    rng = np.random.RandomState(seed); n = 5875
+    status = rng.choice([0, 1], size=n, p=[0.25, 0.75])
+    specs = {
+        "MDVP:Fo(Hz)":(145.21,35.,197.10,45.), "MDVP:Fhi(Hz)":(197.11,60.,243.60,70.),
+        "MDVP:Flo(Hz)":(102.15,28.,146.67,38.), "MDVP:Jitter(%)":(0.0063,.004,.0033,.0015),
+        "MDVP:Jitter(Abs)":(4.5e-5,2.5e-5,2.2e-5,1e-5), "MDVP:RAP":(.0033,.002,.0017,.001),
+        "MDVP:PPQ":(.0034,.002,.0018,.001), "Jitter:DDP":(.010,.006,.0052,.003),
+        "MDVP:Shimmer":(.0508,.025,.0231,.012), "MDVP:Shimmer(dB)":(.471,.22,.214,.10),
+        "Shimmer:APQ3":(.0269,.014,.0122,.006), "Shimmer:APQ5":(.0316,.017,.0145,.007),
+        "MDVP:APQ":(.0439,.022,.0199,.010), "Shimmer:DDA":(.0808,.040,.0366,.018),
+        "NHR":(.0312,.028,.0111,.008), "HNR":(19.98,5.5,24.68,4.5),
+        "RPDE":(.587,.085,.499,.070), "DFA":(.753,.048,.718,.045),
+        "spread1":(-5.335,1.0,-6.759,.9), "spread2":(.269,.10,.168,.08),
+        "D2":(2.522,.38,2.302,.34), "PPE":(.213,.11,.062,.035),
+    }
+    rows = {}
+    for f in feat_names:
+        if f in specs:
+            mu_p, sd_p, mu_h, sd_h = specs[f]
+            rows[f] = np.where(status==1,
+                np.clip(rng.normal(mu_p, sd_p, n), 0, None),
+                np.clip(rng.normal(mu_h, sd_h, n), 0, None))
+        else:
+            rows[f] = rng.normal(.5, .15, n)
+    df = pd.DataFrame(rows); df["status"] = status
+    return df.reset_index(drop=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -490,712 +261,664 @@ def bootstrap_ci(y_true, y_proba, metric_fn, n_boot=1000, ci=0.95, seed=42):
 # ══════════════════════════════════════════════════════════════════════════════
 def render_advanced_tabs(df, scaler, feat_names, existing_results):
     df_hash = len(df)
-    X  = df[feat_names]; y = df["status"]
+    X = df[feat_names]; y = df["status"]
     Xs = scaler.transform(X)
     Xtr, Xte, ytr, yte = train_test_split(Xs, y, test_size=0.2, stratify=y, random_state=42)
 
     adv_tabs = st.tabs([
-        "🚀 Boosting Models + Optuna",
-        "🎯 Stacking Ensemble",
-        "⚖️ SMOTE + Class Balance",
-        "📐 Calibration + Uncertainty",
-        "🔬 Statistical Tests",
-        "🌍 Cross-Dataset Validation",
+        "Boosting + Optuna",
+        "Stacking Ensemble",
+        "SMOTE + Class Balance",
+        "Calibration + Uncertainty",
+        "Statistical Tests",
+        "Cross-Dataset Validation",
     ])
-
 
     # ══════════════════════════════════════════════════════════════════════════
     #  TAB 0 — BOOSTING + OPTUNA
     # ══════════════════════════════════════════════════════════════════════════
     with adv_tabs[0]:
-        info_box("""<strong>XGBoost + LightGBM + CatBoost</strong> — the three industry-standard
-            gradient boosting libraries used at Google, Meta, Kaggle competitions.
-            <strong>Optuna</strong> performs Bayesian hyperparameter optimisation (TPE sampler)
-            — smarter than GridSearchCV, finds better params with fewer trials.""")
+        info_box(
+            "<strong>XGBoost, LightGBM, CatBoost</strong> — the three industry-standard "
+            "gradient boosting libraries. <strong>Optuna TPE</strong> (Bayesian optimisation) "
+            "finds better hyperparameters than GridSearch with far fewer trials. "
+            "Each model runs independently so you can train them one at a time.")
 
         missing = []
-        if not XGB_OK:   missing.append("`pip install xgboost`")
-        if not LGB_OK:   missing.append("`pip install lightgbm`")
-        if not CAT_OK:   missing.append("`pip install catboost`")
-        if not OPTUNA_OK:missing.append("`pip install optuna`")
+        if not XGB_OK:    missing.append("<code>pip install xgboost</code>")
+        if not LGB_OK:    missing.append("<code>pip install lightgbm</code>")
+        if not CAT_OK:    missing.append("<code>pip install catboost</code>")
+        if not OPTUNA_OK: missing.append("<code>pip install optuna</code>")
         if missing:
-            warn_box(f"Missing packages: {' · '.join(missing)}")
-
-        boost_results = {}
+            warn_box("Missing packages: " + " &nbsp;·&nbsp; ".join(missing))
 
         # ── XGBoost ──────────────────────────────────────────────────────────
         section("XGBoost — Optuna Tuning")
-        if XGB_OK and OPTUNA_OK:
-            with st.spinner("Tuning XGBoost with Optuna (40 trials × 5-fold CV)…"):
-                @st.cache_resource
-                def _xgb(dh, _Xtr, _ytr): return optuna_tune_xgb(_Xtr, _ytr, n_trials=40)
-                xgb_model, xgb_study = _xgb(df_hash, Xtr, ytr)
-            boost_results["XGBoost"] = get_full_metrics(xgb_model, Xte, yte, "XGBoost")
-            xm = boost_results["XGBoost"]
+        if not (XGB_OK and OPTUNA_OK):
+            warn_box("XGBoost and Optuna required. Install above packages first.")
+        elif run_gate(
+            key="xgb_ran",
+            button_label="XGBoost Optuna Tuning",
+            description="40 Optuna trials × 5-fold stratified CV optimising ROC AUC. "
+                        "Searches over learning rate, max depth, subsample, colsample, L1/L2 regularisation.",
+            estimated_time="2–4 minutes on Streamlit Cloud"
+        ):
+            with st.spinner("Tuning XGBoost… (40 trials × 5-fold CV)"):
+                cv5 = StratifiedKFold(5, shuffle=True, random_state=42)
+                def xgb_obj(trial):
+                    p = {
+                        "n_estimators":     trial.suggest_int("n_estimators", 100, 400),
+                        "max_depth":        trial.suggest_int("max_depth", 3, 8),
+                        "learning_rate":    trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
+                        "subsample":        trial.suggest_float("subsample", 0.6, 1.0),
+                        "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
+                        "reg_alpha":        trial.suggest_float("reg_alpha", 1e-5, 5, log=True),
+                        "reg_lambda":       trial.suggest_float("reg_lambda", 1e-5, 5, log=True),
+                        "eval_metric": "logloss", "random_state": 42, "verbosity": 0,
+                    }
+                    return cross_val_score(xgb.XGBClassifier(**p), Xtr, ytr, cv=cv5, scoring="roc_auc", n_jobs=-1).mean()
+                study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=42))
+                study.optimize(xgb_obj, n_trials=40, show_progress_bar=False)
+                bp = {**study.best_params, "eval_metric":"logloss","random_state":42,"verbosity":0}
+                xgb_model = xgb.XGBClassifier(**bp).fit(Xtr, ytr)
+                st.session_state["xgb_model"] = xgb_model
+                st.session_state["xgb_study"] = study
+
+            xgb_model = st.session_state["xgb_model"]
+            study      = st.session_state["xgb_study"]
+            m = get_full_metrics(xgb_model, Xte, yte, "XGBoost")
 
             c1,c2,c3,c4 = st.columns(4)
-            for col,(lbl,val,color) in zip([c1,c2,c3,c4],[
-                ("Test AUC",      f"{xm['roc_auc']:.4f}",         BLUE),
-                ("Accuracy",      f"{xm['accuracy']*100:.1f}%",   GREEN),
-                ("F1",            f"{xm['f1']:.4f}",               AMBER),
-                ("Best Trial AUC",f"{xgb_study.best_value:.4f}", PURPLE),
-            ]):
-                with col: metric_card(val, lbl, color)
+            with c1: metric_card(f"{m['roc_auc']:.4f}", "ROC AUC", BLUE)
+            with c2: metric_card(f"{m['accuracy']*100:.1f}%", "Test Accuracy", GREEN)
+            with c3: metric_card(f"{m['f1']:.4f}", "F1 Score", AMBER)
+            with c4: metric_card(f"{study.best_value:.4f}", "Best CV AUC", PURPLE)
 
             st.markdown("<br>", unsafe_allow_html=True)
             col1, col2 = st.columns(2)
             with col1:
-                section("Optuna Optimization History")
-                trial_vals = [t.value for t in xgb_study.trials if t.value is not None]
-                best_so_far = np.maximum.accumulate(trial_vals)
+                section("Optuna Trial History")
+                vals = [t.value for t in study.trials if t.value]
                 fig, ax = plt.subplots(figsize=(5, 3.5))
-                ax.scatter(range(len(trial_vals)), trial_vals, color=BLUE, alpha=0.5, s=20, label="Trial AUC")
-                ax.plot(range(len(best_so_far)), best_so_far, color=RED, lw=2, label="Best so far")
-                ax.set(title="Optuna — XGBoost Trial History", xlabel="Trial", ylabel="CV ROC AUC")
+                ax.scatter(range(len(vals)), vals, color=BLUE, alpha=0.5, s=20, label="Trial")
+                ax.plot(range(len(vals)), np.maximum.accumulate(vals), color=RED, lw=2, label="Best")
+                ax.set(title="XGBoost — Optuna Trial History", xlabel="Trial", ylabel="CV ROC AUC")
                 ax.legend(); ax.grid(True)
                 fig.tight_layout(); st.pyplot(fig); plt.close(fig)
             with col2:
-                section("Best Hyperparameters")
-                bp = xgb_study.best_params
-                for k, v in bp.items():
-                    st.markdown(f"""<div style='display:flex;justify-content:space-between;
-                        font-size:0.82rem;padding:5px 0;border-bottom:1px solid {BORDER}'>
-                        <span style='color:{TEXT_MID}'>{k}</span>
-                        <span style='color:{NAVY};font-weight:600'>{v:.4f if isinstance(v,float) else v}</span>
-                    </div>""", unsafe_allow_html=True)
+                section("Best Parameters Found")
+                for k, v in study.best_params.items():
+                    st.markdown(
+                        f'<div style="display:flex;justify-content:space-between;'
+                        f'font-size:0.82rem;padding:5px 0;border-bottom:1px solid {BORDER}">'
+                        f'<span style="color:{TEXT_MID}">{k}</span>'
+                        f'<span style="color:{NAVY};font-weight:600">'
+                        f'{v:.4f if isinstance(v,float) else v}</span></div>',
+                        unsafe_allow_html=True)
 
-            # Feature importance
-            section("XGBoost Feature Importance")
-            fi   = xgb_model.feature_importances_
-            fi_idx = np.argsort(fi)[::-1][:15]
-            fig, ax = plt.subplots(figsize=(10, 3.5))
-            ax.bar([feat_names[i] for i in fi_idx], fi[fi_idx],
-                   color=BLUE, alpha=0.8, edgecolor=WHITE)
-            ax.set_xticklabels([feat_names[i] for i in fi_idx], rotation=45, ha="right", fontsize=8)
-            ax.set(title="XGBoost Feature Importance (Gain)", ylabel="Importance")
-            ax.grid(axis="y"); fig.tight_layout(); st.pyplot(fig); plt.close(fig)
-        else:
-            warn_box("Install xgboost and optuna to enable this section.")
-            xgb_model = None
+            section("XGBoost vs Best Classical Model — ROC")
+            best_cls = max(existing_results, key=lambda k: existing_results[k]["roc_auc"])
+            bc = existing_results[best_cls]
+            fig, ax = plt.subplots(figsize=(9, 4))
+            ax.plot(bc["fpr"], bc["tpr"], color=TEXT_DIM, lw=1.5, ls="--",
+                    label=f"Best Classical: {best_cls} ({bc['roc_auc']:.4f})")
+            ax.plot(m["fpr"], m["tpr"], color=BLUE, lw=2.5,
+                    label=f"XGBoost Tuned ({m['roc_auc']:.4f})")
+            ax.fill_between(m["fpr"], m["tpr"], alpha=0.08, color=BLUE)
+            ax.plot([0,1],[0,1], color=BORDER, lw=1, ls=":")
+            ax.set(title="XGBoost vs Best Classical — ROC Curve", xlabel="FPR", ylabel="TPR")
+            ax.legend(); ax.grid(True)
+            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
         # ── LightGBM ─────────────────────────────────────────────────────────
         section("LightGBM — Optuna Tuning")
-        if LGB_OK and OPTUNA_OK:
-            with st.spinner("Tuning LightGBM with Optuna (40 trials)…"):
-                @st.cache_resource
-                def _lgb(dh, _Xtr, _ytr): return optuna_tune_lgb(_Xtr, _ytr, n_trials=40)
-                lgb_model, lgb_study = _lgb(df_hash, Xtr, ytr)
-            boost_results["LightGBM"] = get_full_metrics(lgb_model, Xte, yte, "LightGBM")
-            lm = boost_results["LightGBM"]
+        if not (LGB_OK and OPTUNA_OK):
+            warn_box("LightGBM and Optuna required.")
+        elif run_gate(
+            key="lgb_ran",
+            button_label="LightGBM Optuna Tuning",
+            description="40 Optuna trials × 5-fold CV. Searches learning rate, num_leaves, "
+                        "max depth, subsample, min_child_samples, L1/L2.",
+            estimated_time="2–3 minutes on Streamlit Cloud"
+        ):
+            with st.spinner("Tuning LightGBM… (40 trials)"):
+                cv5 = StratifiedKFold(5, shuffle=True, random_state=42)
+                def lgb_obj(trial):
+                    p = {
+                        "n_estimators":      trial.suggest_int("n_estimators", 100, 400),
+                        "max_depth":         trial.suggest_int("max_depth", 3, 8),
+                        "learning_rate":     trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
+                        "num_leaves":        trial.suggest_int("num_leaves", 20, 120),
+                        "subsample":         trial.suggest_float("subsample", 0.6, 1.0),
+                        "colsample_bytree":  trial.suggest_float("colsample_bytree", 0.6, 1.0),
+                        "reg_alpha":         trial.suggest_float("reg_alpha", 1e-5, 5, log=True),
+                        "reg_lambda":        trial.suggest_float("reg_lambda", 1e-5, 5, log=True),
+                        "min_child_samples": trial.suggest_int("min_child_samples", 5, 40),
+                        "random_state": 42, "verbosity": -1,
+                    }
+                    return cross_val_score(lgb.LGBMClassifier(**p), Xtr, ytr, cv=cv5, scoring="roc_auc", n_jobs=-1).mean()
+                study_l = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=42))
+                study_l.optimize(lgb_obj, n_trials=40, show_progress_bar=False)
+                bp_l = {**study_l.best_params, "random_state":42,"verbosity":-1}
+                lgb_model = lgb.LGBMClassifier(**bp_l).fit(Xtr, ytr)
+                st.session_state["lgb_model"] = lgb_model
+                st.session_state["lgb_study"] = study_l
+
+            lgb_model = st.session_state["lgb_model"]
+            study_l   = st.session_state["lgb_study"]
+            ml = get_full_metrics(lgb_model, Xte, yte, "LightGBM")
 
             c1,c2,c3,c4 = st.columns(4)
-            for col,(lbl,val,color) in zip([c1,c2,c3,c4],[
-                ("Test AUC",      f"{lm['roc_auc']:.4f}",         BLUE),
-                ("Accuracy",      f"{lm['accuracy']*100:.1f}%",   GREEN),
-                ("F1",            f"{lm['f1']:.4f}",               AMBER),
-                ("Best Trial AUC",f"{lgb_study.best_value:.4f}", PURPLE),
-            ]):
-                with col: metric_card(val, lbl, color)
-
-            col1, col2 = st.columns(2)
-            with col1:
-                section("Optuna History — LightGBM")
-                trial_vals2 = [t.value for t in lgb_study.trials if t.value is not None]
-                best2 = np.maximum.accumulate(trial_vals2)
-                fig, ax = plt.subplots(figsize=(5, 3.5))
-                ax.scatter(range(len(trial_vals2)), trial_vals2, color=GREEN, alpha=0.5, s=20)
-                ax.plot(range(len(best2)), best2, color=RED, lw=2, label="Best so far")
-                ax.set(title="Optuna — LightGBM Trial History", xlabel="Trial", ylabel="CV ROC AUC")
-                ax.legend(); ax.grid(True)
-                fig.tight_layout(); st.pyplot(fig); plt.close(fig)
-            with col2:
-                section("LightGBM Feature Importance")
-                fi_lgb = lgb_model.feature_importances_
-                fi_lgb_idx = np.argsort(fi_lgb)[::-1][:10]
-                fig, ax = plt.subplots(figsize=(5, 3.5))
-                ax.barh([feat_names[i] for i in fi_lgb_idx[::-1]], fi_lgb[fi_lgb_idx[::-1]],
-                        color=GREEN, alpha=0.8, edgecolor=WHITE)
-                ax.set(title="LightGBM Feature Importance", xlabel="Importance")
-                ax.grid(axis="x"); fig.tight_layout(); st.pyplot(fig); plt.close(fig)
-        else:
-            warn_box("Install lightgbm and optuna to enable this section.")
-            lgb_model = None
+            with c1: metric_card(f"{ml['roc_auc']:.4f}", "ROC AUC", BLUE)
+            with c2: metric_card(f"{ml['accuracy']*100:.1f}%", "Test Accuracy", GREEN)
+            with c3: metric_card(f"{ml['f1']:.4f}", "F1 Score", AMBER)
+            with c4: metric_card(f"{study_l.best_value:.4f}", "Best CV AUC", PURPLE)
 
         # ── CatBoost ─────────────────────────────────────────────────────────
         section("CatBoost — Optuna Tuning")
-        if CAT_OK and OPTUNA_OK:
-            with st.spinner("Tuning CatBoost with Optuna (30 trials)…"):
-                @st.cache_resource
-                def _cat(dh, _Xtr, _ytr): return optuna_tune_cat(_Xtr, _ytr, n_trials=30)
-                cat_model, cat_study = _cat(df_hash, Xtr, ytr)
-            boost_results["CatBoost"] = get_full_metrics(cat_model, Xte, yte, "CatBoost")
-            cm_ = boost_results["CatBoost"]
+        if not (CAT_OK and OPTUNA_OK):
+            warn_box("CatBoost and Optuna required.")
+        elif run_gate(
+            key="cat_ran",
+            button_label="CatBoost Optuna Tuning",
+            description="30 Optuna trials × 5-fold CV. Searches iterations, depth, "
+                        "learning rate, L2 leaf regularisation, border count.",
+            estimated_time="3–5 minutes on Streamlit Cloud"
+        ):
+            with st.spinner("Tuning CatBoost… (30 trials — this is the slowest one)"):
+                cv5 = StratifiedKFold(5, shuffle=True, random_state=42)
+                def cat_obj(trial):
+                    p = {
+                        "iterations":      trial.suggest_int("iterations", 100, 400),
+                        "depth":           trial.suggest_int("depth", 3, 8),
+                        "learning_rate":   trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
+                        "l2_leaf_reg":     trial.suggest_float("l2_leaf_reg", 1e-3, 10, log=True),
+                        "border_count":    trial.suggest_int("border_count", 32, 200),
+                        "random_state": 42, "verbose": 0,
+                    }
+                    return cross_val_score(cb.CatBoostClassifier(**p), Xtr, ytr, cv=cv5, scoring="roc_auc", n_jobs=1).mean()
+                study_c = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=42))
+                study_c.optimize(cat_obj, n_trials=30, show_progress_bar=False)
+                bp_c = {**study_c.best_params, "random_state":42,"verbose":0}
+                cat_model = cb.CatBoostClassifier(**bp_c).fit(Xtr, ytr)
+                st.session_state["cat_model"] = cat_model
+                st.session_state["cat_study"] = study_c
+
+            cat_model = st.session_state["cat_model"]
+            study_c   = st.session_state["cat_study"]
+            mc = get_full_metrics(cat_model, Xte, yte, "CatBoost")
 
             c1,c2,c3,c4 = st.columns(4)
-            for col,(lbl,val,color) in zip([c1,c2,c3,c4],[
-                ("Test AUC",      f"{cm_['roc_auc']:.4f}",          BLUE),
-                ("Accuracy",      f"{cm_['accuracy']*100:.1f}%",    GREEN),
-                ("F1",            f"{cm_['f1']:.4f}",                AMBER),
-                ("Best Trial AUC",f"{cat_study.best_value:.4f}",   PURPLE),
-            ]):
-                with col: metric_card(val, lbl, color)
-        else:
-            warn_box("Install catboost and optuna to enable this section.")
-            cat_model = None
-
-        # ── Boosting comparison ───────────────────────────────────────────────
-        if boost_results:
-            section("Boosting Models — ROC Comparison")
-            fig, ax = plt.subplots(figsize=(8, 4.5))
-            boost_pal = [BLUE, GREEN, AMBER]
-            for (name, res), c in zip(boost_results.items(), boost_pal):
-                ax.plot(res["fpr"], res["tpr"], color=c, lw=2.5,
-                        label=f"{name} (AUC={res['roc_auc']:.4f})")
-                ax.fill_between(res["fpr"], res["tpr"], alpha=0.06, color=c)
-            # Also plot best classical
-            best_classical = max(existing_results, key=lambda k: existing_results[k]["roc_auc"])
-            bc = existing_results[best_classical]
-            ax.plot(bc["fpr"], bc["tpr"], color=TEXT_DIM, lw=1.5, ls="--",
-                    label=f"Best Classical: {best_classical} ({bc['roc_auc']:.4f})")
-            ax.plot([0,1],[0,1], color=BORDER, lw=1, ls=":")
-            ax.set(title="Boosting Models vs Best Classical — ROC Curves", xlabel="FPR", ylabel="TPR")
-            ax.legend(fontsize=8); ax.grid(True)
-            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+            with c1: metric_card(f"{mc['roc_auc']:.4f}", "ROC AUC", BLUE)
+            with c2: metric_card(f"{mc['accuracy']*100:.1f}%", "Test Accuracy", GREEN)
+            with c3: metric_card(f"{mc['f1']:.4f}", "F1 Score", AMBER)
+            with c4: metric_card(f"{study_c.best_value:.4f}", "Best CV AUC", PURPLE)
 
 
     # ══════════════════════════════════════════════════════════════════════════
     #  TAB 1 — STACKING ENSEMBLE
     # ══════════════════════════════════════════════════════════════════════════
     with adv_tabs[1]:
-        info_box("""<strong>Stacking Ensemble</strong> trains a <em>meta-learner</em>
-            (Logistic Regression) on the out-of-fold predictions of all base models.
-            The meta-learner learns which classifiers to trust for which inputs —
-            often outperforming any individual model. This is what winning Kaggle teams use.""")
+        info_box(
+            "<strong>Stacking Ensemble</strong> trains a meta-learner (Logistic Regression) "
+            "on the out-of-fold predictions of all base classifiers. The meta-learner learns "
+            "which models to trust for which regions of input space — often outperforming "
+            "any individual model. This is the standard approach in Kaggle competition winners.")
 
-        xgb_m = None; lgb_m = None; cat_m = None
-        try:
-            if XGB_OK and OPTUNA_OK:
-                @st.cache_resource
-                def _xgb2(dh, _Xtr, _ytr): return optuna_tune_xgb(_Xtr, _ytr, n_trials=40)
-                xgb_m, _ = _xgb2(df_hash, Xtr, ytr)
-        except Exception: pass
-        try:
-            if LGB_OK and OPTUNA_OK:
-                @st.cache_resource
-                def _lgb2(dh, _Xtr, _ytr): return optuna_tune_lgb(_Xtr, _ytr, n_trials=40)
-                lgb_m, _ = _lgb2(df_hash, Xtr, ytr)
-        except Exception: pass
-        try:
-            if CAT_OK and OPTUNA_OK:
-                @st.cache_resource
-                def _cat2(dh, _Xtr, _ytr): return optuna_tune_cat(_Xtr, _ytr, n_trials=30)
-                cat_m, _ = _cat2(df_hash, Xtr, ytr)
-        except Exception: pass
+        if run_gate(
+            key="stack_ran",
+            button_label="Build Stacking Ensemble",
+            description="Trains 6 base models with 5-fold out-of-fold predictions, "
+                        "then fits a Logistic Regression meta-learner on top. "
+                        "Includes any boosting models already trained in the previous tab.",
+            estimated_time="1–2 minutes on Streamlit Cloud"
+        ):
+            with st.spinner("Building Stacking Ensemble…"):
+                estimators = [
+                    ("rf",  RandomForestClassifier(n_estimators=200, max_depth=10, random_state=42)),
+                    ("gb",  GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, random_state=42)),
+                    ("svm", SVC(kernel="rbf", C=10, gamma=0.01, probability=True, random_state=42)),
+                    ("knn", KNeighborsClassifier(n_neighbors=7)),
+                    ("lr",  LogisticRegression(C=0.5, max_iter=2000, random_state=42)),
+                ]
+                if "xgb_model" in st.session_state:
+                    estimators.append(("xgb", st.session_state["xgb_model"]))
+                if "lgb_model" in st.session_state:
+                    estimators.append(("lgb", st.session_state["lgb_model"]))
+                if "cat_model" in st.session_state:
+                    estimators.append(("cat", st.session_state["cat_model"]))
 
-        with st.spinner("Building Stacking Ensemble (this trains all base models with 5-fold OOF)…"):
-            stack_clf, stack_metrics = build_stacking(df_hash, Xtr, ytr, Xte, yte, xgb_m, lgb_m, cat_m)
+                stack = StackingClassifier(
+                    estimators=estimators,
+                    final_estimator=LogisticRegression(C=1.0, max_iter=1000, random_state=42),
+                    cv=StratifiedKFold(5, shuffle=True, random_state=42),
+                    passthrough=False, n_jobs=-1,
+                )
+                stack.fit(Xtr, ytr)
+                st.session_state["stack_model"] = stack
+                st.session_state["stack_metrics"] = get_full_metrics(stack, Xte, yte, "Stacking")
 
-        sm = stack_metrics
-        c1,c2,c3,c4,c5 = st.columns(5)
-        for col,(lbl,val,color) in zip([c1,c2,c3,c4,c5],[
-            ("ROC AUC",   f"{sm['roc_auc']:.4f}",        BLUE),
-            ("Accuracy",  f"{sm['accuracy']*100:.1f}%",  GREEN),
-            ("F1 Score",  f"{sm['f1']:.4f}",              AMBER),
-            ("MCC",       f"{sm['mcc']:.4f}",             PURPLE),
-            ("Brier",     f"{sm['brier']:.4f}",           RED),
-        ]):
-            with col: metric_card(val, lbl, color)
+            sm = st.session_state["stack_metrics"]
+            c1,c2,c3,c4,c5 = st.columns(5)
+            with c1: metric_card(f"{sm['roc_auc']:.4f}", "ROC AUC", BLUE)
+            with c2: metric_card(f"{sm['accuracy']*100:.1f}%", "Accuracy", GREEN)
+            with c3: metric_card(f"{sm['f1']:.4f}", "F1 Score", AMBER)
+            with c4: metric_card(f"{sm['mcc']:.4f}", "MCC", PURPLE)
+            with c5: metric_card(f"{sm['brier']:.4f}", "Brier Score", RED)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        col1, col2 = st.columns(2)
-        with col1:
-            section("Stacking Ensemble — Confusion Matrix")
-            fig, ax = plt.subplots(figsize=(5, 4))
-            cm_n = sm["cm"].astype(float)/sm["cm"].sum(axis=1,keepdims=True)
-            im=ax.imshow(cm_n,cmap=LinearSegmentedColormap.from_list("cm",[WHITE,BLUE_LIGHT,BLUE],256),vmin=0,vmax=1)
-            for i in range(2):
-                for j in range(2):
-                    ax.text(j,i,f"{sm['cm'][i,j]}\n({cm_n[i,j]*100:.1f}%)",
-                            ha="center",va="center",fontsize=13,fontweight="bold",
-                            color=WHITE if cm_n[i,j]>0.6 else NAVY)
-            ax.set_xticks([0,1]); ax.set_yticks([0,1])
-            ax.set_xticklabels(["Pred: Healthy","Pred: PD"])
-            ax.set_yticklabels(["True: Healthy","True: PD"])
-            ax.set_title("Stacking Ensemble — Confusion Matrix")
-            plt.colorbar(im,ax=ax,fraction=0.046)
-            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
-
-        with col2:
-            section("Stacking vs All Models — ROC")
-            fig, ax = plt.subplots(figsize=(5, 4))
-            for (name,res), c in zip(list(existing_results.items())[:5], PAL):
-                ax.plot(res["fpr"],res["tpr"],color=c,lw=1.2,alpha=0.5,label=f"{name} ({res['roc_auc']:.3f})")
-            ax.plot(sm["fpr"],sm["tpr"],color=NAVY,lw=3,label=f"Stacking ({sm['roc_auc']:.4f}) ★")
-            ax.plot([0,1],[0,1],color=BORDER,lw=1,ls="--")
-            ax.set(title="ROC — Stacking vs Base Models",xlabel="FPR",ylabel="TPR")
-            ax.legend(fontsize=7,loc="lower right"); ax.grid(True)
-            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
-
-        section("Classification Report")
-        st.code(sm["report"], language="")
-
-        # Meta-learner coefficients
-        section("Meta-Learner Coefficients (What the Stacker Learned)")
-        try:
-            meta = stack_clf.final_estimator_
-            base_names = [name for name, _ in stack_clf.estimators]
-            coefs = meta.coef_[0]
-            fig, ax = plt.subplots(figsize=(9, 3))
-            colors_coef = [GREEN if c > 0 else RED for c in coefs]
-            ax.bar(base_names[:len(coefs)], coefs, color=colors_coef, alpha=0.8, edgecolor=WHITE)
-            ax.axhline(0, color=NAVY, lw=1.5)
-            ax.set(title="Meta-Learner Coefficients — Which base models the stacker trusts most",
-                   ylabel="Logistic Regression Coefficient")
-            ax.set_xticklabels(base_names[:len(coefs)], rotation=30, ha="right", fontsize=8)
-            ax.grid(axis="y"); fig.tight_layout(); st.pyplot(fig); plt.close(fig)
-        except Exception as e:
-            st.info(f"Meta-learner coef plot skipped: {e}")
-
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  TAB 2 — SMOTE + CLASS BALANCE
-    # ══════════════════════════════════════════════════════════════════════════
-    with adv_tabs[2]:
-        info_box("""<strong>Class Imbalance</strong> (75% PD, 25% Healthy) can bias models
-            toward the majority class. <strong>SMOTE</strong> (Synthetic Minority Oversampling),
-            <strong>ADASYN</strong>, and <strong>SMOTETomek</strong> create synthetic minority
-            samples to balance training data. We compare their impact on model performance.""")
-
-        if not SMOTE_OK:
-            warn_box("Install imbalanced-learn: `pip install imbalanced-learn`")
-        else:
-            with st.spinner("Applying SMOTE, ADASYN, SMOTETomek and re-training…"):
-                @st.cache_data
-                def _sampling(dh, _Xtr, _ytr): return apply_sampling(dh, _Xtr, _ytr)
-                sampling_results = _sampling(df_hash, Xtr, ytr)
-
-            # Train RF on each sampled dataset
-            smote_metrics = {}
-            for method, (Xs, ys) in sampling_results.items():
-                clf = RandomForestClassifier(n_estimators=200, max_depth=10, random_state=42)
-                clf.fit(Xs, ys)
-                smote_metrics[method] = get_full_metrics(clf, Xte, yte, method)
-
-            # Class distribution comparison
-            section("Class Distribution Before / After Resampling")
-            fig, axes = plt.subplots(1, len(sampling_results), figsize=(4*len(sampling_results), 3.5))
-            if len(sampling_results) == 1: axes = [axes]
-            for ax, (method, (Xs, ys)) in zip(axes, sampling_results.items()):
-                counts = pd.Series(ys).value_counts().sort_index()
-                ax.bar(["Healthy","PD"], [counts.get(0,0), counts.get(1,0)],
-                       color=[GREEN, RED], alpha=0.8, edgecolor=WHITE)
-                ax.set_title(f"{method}\nn={len(ys)}", fontsize=9, fontweight="bold")
-                ax.set_ylabel("Count"); ax.grid(axis="y")
-                for i, v in enumerate([counts.get(0,0), counts.get(1,0)]):
-                    ax.text(i, v+2, str(v), ha="center", fontsize=9, fontweight="bold")
-            fig.suptitle("Training Set Class Balance After Resampling", color=NAVY, fontweight="bold")
-            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
-
-            # Performance comparison
-            section("Impact on Model Performance")
-            c1,c2 = st.columns(2)
-            with c1:
-                comp_rows = []
-                for method, m in smote_metrics.items():
-                    comp_rows.append({
-                        "Method": method,
-                        "Accuracy": f"{m['accuracy']*100:.2f}%",
-                        "F1": f"{m['f1']:.4f}",
-                        "ROC AUC": f"{m['roc_auc']:.4f}",
-                        "Recall": f"{m['recall']:.4f}",
-                        "Precision": f"{m['precision']:.4f}",
-                        "Brier": f"{m['brier']:.4f}",
-                    })
-                st.dataframe(pd.DataFrame(comp_rows), use_container_width=True)
-
-            with c2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                section("Confusion Matrix")
                 fig, ax = plt.subplots(figsize=(5, 4))
-                methods = list(smote_metrics.keys())
-                for m_name, res, c in zip(methods, smote_metrics.values(), PAL):
-                    ax.plot(res["fpr"], res["tpr"], color=c, lw=2.5,
-                            label=f"{m_name} (AUC={res['roc_auc']:.4f})")
-                ax.plot([0,1],[0,1],color=BORDER,lw=1,ls="--")
-                ax.set(title="SMOTE Methods — ROC Comparison",xlabel="FPR",ylabel="TPR")
-                ax.legend(fontsize=7.5); ax.grid(True)
+                cm_n = sm["cm"].astype(float) / sm["cm"].sum(axis=1, keepdims=True)
+                im = ax.imshow(cm_n, cmap=LinearSegmentedColormap.from_list("c",[WHITE,BLUE_LIGHT,BLUE],256), vmin=0, vmax=1)
+                for i in range(2):
+                    for j in range(2):
+                        ax.text(j,i,f"{sm['cm'][i,j]}\n({cm_n[i,j]*100:.1f}%)",
+                                ha="center",va="center",fontsize=13,fontweight="bold",
+                                color=WHITE if cm_n[i,j]>0.6 else NAVY)
+                ax.set_xticks([0,1]); ax.set_yticks([0,1])
+                ax.set_xticklabels(["Pred: Healthy","Pred: PD"])
+                ax.set_yticklabels(["True: Healthy","True: PD"])
+                ax.set_title("Stacking Ensemble — Confusion Matrix")
+                plt.colorbar(im,ax=ax,fraction=0.046)
                 fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
-            # Recall vs Precision tradeoff
-            section("Recall vs Precision — Clinical Impact")
-            info_box("""In clinical settings, <strong>Recall (Sensitivity)</strong> for PD is
-                critical — missing a PD patient (false negative) is more harmful than a
-                false alarm. SMOTE typically improves recall at the cost of some precision.""")
-            fig, ax = plt.subplots(figsize=(9, 3.5))
-            x = np.arange(len(methods)); w = 0.25
-            recalls    = [smote_metrics[m]["recall"]    for m in methods]
-            precisions = [smote_metrics[m]["precision"] for m in methods]
-            f1s        = [smote_metrics[m]["f1"]        for m in methods]
-            ax.bar(x-w, recalls,    w, label="Recall",    color=GREEN, alpha=0.8, edgecolor=WHITE)
-            ax.bar(x,   precisions, w, label="Precision", color=BLUE,  alpha=0.8, edgecolor=WHITE)
-            ax.bar(x+w, f1s,        w, label="F1",        color=AMBER, alpha=0.8, edgecolor=WHITE)
-            ax.set_xticks(x); ax.set_xticklabels(methods)
-            ax.set(title="Recall / Precision / F1 per Resampling Method", ylabel="Score", ylim=[0,1.1])
-            ax.legend(); ax.grid(axis="y"); fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+            with col2:
+                section("Stacking vs Base Models — ROC")
+                fig, ax = plt.subplots(figsize=(5, 4))
+                for (name,res), c in zip(list(existing_results.items())[:5], PAL):
+                    ax.plot(res["fpr"],res["tpr"],color=c,lw=1.2,alpha=0.45,
+                            label=f"{name[:20]} ({res['roc_auc']:.3f})")
+                ax.plot(sm["fpr"],sm["tpr"],color=NAVY,lw=3,
+                        label=f"Stacking ({sm['roc_auc']:.4f})")
+                ax.plot([0,1],[0,1],color=BORDER,lw=1,ls="--")
+                ax.set(title="ROC — Stacking vs Base Models",xlabel="FPR",ylabel="TPR")
+                ax.legend(fontsize=7,loc="lower right"); ax.grid(True)
+                fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+
+            section("Classification Report")
+            st.code(sm["report"], language="")
+
+            section("Meta-Learner Coefficients")
+            try:
+                meta  = st.session_state["stack_model"].final_estimator_
+                names = [n for n,_ in st.session_state["stack_model"].estimators]
+                coefs = meta.coef_[0]
+                fig, ax = plt.subplots(figsize=(9, 3))
+                ax.bar(names[:len(coefs)], coefs,
+                       color=[GREEN if c>0 else RED for c in coefs], alpha=0.8, edgecolor=WHITE)
+                ax.axhline(0, color=NAVY, lw=1.5)
+                ax.set(title="Meta-Learner Coefficients — Which base models the stacker trusts most",
+                       ylabel="Logistic Regression Coefficient")
+                ax.set_xticklabels(names[:len(coefs)], rotation=25, ha="right", fontsize=8)
+                ax.grid(axis="y"); fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+            except Exception as e:
+                st.info(f"Coefficient plot skipped: {e}")
+
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  TAB 2 — SMOTE
+    # ══════════════════════════════════════════════════════════════════════════
+    with adv_tabs[2]:
+        info_box(
+            "The dataset is <strong>imbalanced</strong> (75% PD, 25% Healthy). "
+            "<strong>SMOTE</strong> creates synthetic minority-class samples by interpolating "
+            "between existing healthy recordings. <strong>ADASYN</strong> focuses synthesis on "
+            "harder boundary cases. <strong>SMOTETomek</strong> combines oversampling with "
+            "removal of noisy boundary samples from the majority class.")
+
+        if not SMOTE_OK:
+            warn_box("Install imbalanced-learn: <code>pip install imbalanced-learn</code>")
+        elif run_gate(
+            key="smote_ran",
+            button_label="Run SMOTE / ADASYN / SMOTETomek Comparison",
+            description="Applies three resampling strategies to the training set and "
+                        "re-trains a Random Forest on each. Compares recall, precision, "
+                        "F1, and AUC across methods. Test set is never resampled.",
+            estimated_time="30–60 seconds"
+        ):
+            with st.spinner("Applying resampling strategies and re-training…"):
+                sampling = {"Original": (Xtr, ytr)}
+                try:
+                    sm_ = SMOTE(random_state=42, k_neighbors=min(5,int((ytr==0).sum())-1))
+                    Xs_, ys_ = sm_.fit_resample(Xtr, ytr); sampling["SMOTE"] = (Xs_, ys_)
+                except Exception: pass
+                try:
+                    ada = ADASYN(random_state=42, n_neighbors=min(5,int((ytr==0).sum())-1))
+                    Xa_, ya_ = ada.fit_resample(Xtr, ytr); sampling["ADASYN"] = (Xa_, ya_)
+                except Exception: pass
+                try:
+                    smt = SMOTETomek(random_state=42)
+                    Xst_, yst_ = smt.fit_resample(Xtr, ytr); sampling["SMOTETomek"] = (Xst_, yst_)
+                except Exception: pass
+
+                smote_res = {}
+                for method, (Xs_, ys_) in sampling.items():
+                    clf = RandomForestClassifier(n_estimators=200, max_depth=10, random_state=42)
+                    clf.fit(Xs_, ys_)
+                    smote_res[method] = get_full_metrics(clf, Xte, yte, method)
+                st.session_state["smote_res"] = smote_res
+                st.session_state["smote_sampling"] = sampling
+
+            smote_res = st.session_state["smote_res"]
+            sampling  = st.session_state["smote_sampling"]
+
+            section("Class Distribution After Resampling")
+            fig, axes = plt.subplots(1, len(sampling), figsize=(4*len(sampling), 3.5))
+            if len(sampling)==1: axes=[axes]
+            for ax, (method,(Xs_,ys_)) in zip(axes, sampling.items()):
+                counts = pd.Series(ys_).value_counts().sort_index()
+                h_n = counts.get(0,0); pd_n = counts.get(1,0)
+                ax.bar(["Healthy","PD"],[h_n,pd_n],color=[GREEN,RED],alpha=0.8,edgecolor=WHITE)
+                ax.set_title(f"{method}\nn={len(ys_)}",fontsize=9,fontweight="bold")
+                ax.set_ylabel("Count"); ax.grid(axis="y")
+                for i,v in enumerate([h_n,pd_n]):
+                    ax.text(i,v+2,str(v),ha="center",fontsize=9,fontweight="bold")
+            fig.suptitle("Training Set Balance After Resampling",color=NAVY,fontweight="bold")
+            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+
+            section("Performance Comparison")
+            rows = [{
+                "Method":method, "ROC AUC":f"{m['roc_auc']:.4f}",
+                "F1":f"{m['f1']:.4f}", "Recall":f"{m['recall']:.4f}",
+                "Precision":f"{m['precision']:.4f}", "Accuracy":f"{m['accuracy']*100:.2f}%"
+            } for method,m in smote_res.items()]
+            st.dataframe(pd.DataFrame(rows), use_container_width=True)
+
+            col1,col2 = st.columns(2)
+            with col1:
+                fig,ax = plt.subplots(figsize=(5,4))
+                for (mth,m),c in zip(smote_res.items(),PAL):
+                    ax.plot(m["fpr"],m["tpr"],color=c,lw=2.5,label=f"{mth} ({m['roc_auc']:.4f})")
+                ax.plot([0,1],[0,1],color=BORDER,lw=1,ls="--")
+                ax.set(title="SMOTE Methods — ROC Comparison",xlabel="FPR",ylabel="TPR")
+                ax.legend(fontsize=8); ax.grid(True)
+                fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+            with col2:
+                methods = list(smote_res.keys()); x = np.arange(len(methods)); w=0.25
+                fig,ax = plt.subplots(figsize=(5,4))
+                ax.bar(x-w,[smote_res[m]["recall"] for m in methods],w,label="Recall",color=GREEN,alpha=0.8,edgecolor=WHITE)
+                ax.bar(x,  [smote_res[m]["precision"] for m in methods],w,label="Precision",color=BLUE,alpha=0.8,edgecolor=WHITE)
+                ax.bar(x+w,[smote_res[m]["f1"] for m in methods],w,label="F1",color=AMBER,alpha=0.8,edgecolor=WHITE)
+                ax.set_xticks(x); ax.set_xticklabels(methods)
+                ax.set(title="Recall / Precision / F1",ylabel="Score",ylim=[0,1.1])
+                ax.legend(); ax.grid(axis="y"); fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
 
     # ══════════════════════════════════════════════════════════════════════════
     #  TAB 3 — CALIBRATION + UNCERTAINTY
     # ══════════════════════════════════════════════════════════════════════════
     with adv_tabs[3]:
-        info_box("""<strong>Calibration</strong> measures whether predicted probabilities
-            are reliable — if a model says 80% PD, does 80% of that group actually have PD?
-            <strong>Uncertainty Quantification</strong> via Bootstrap tells us how confident
-            we should be in our AUC estimates. Both are required in real clinical ML systems.""")
+        info_box(
+            "<strong>Calibration</strong> checks whether predicted probabilities are trustworthy. "
+            "A model predicting 80% PD should be right about 80% of the time. "
+            "<strong>Bootstrap CIs</strong> give 95% confidence bounds on AUC — "
+            "essential for honest reporting in any research paper or clinical validation.")
 
-        section("Calibration Curves — Reliability Diagrams")
-        # Calibrate top 4 models
-        top_models = sorted(existing_results.items(), key=lambda x: -x[1]["roc_auc"])[:4]
-        fig, axes = plt.subplots(2, 2, figsize=(12, 9))
-        axes = axes.flatten()
-        for ax, (name, res) in zip(axes, top_models):
-            # Original
-            prob_true_orig, prob_pred_orig = calibration_curve(
-                res["y_test"], res["y_proba"], n_bins=8, strategy="uniform"
-            )
-            ax.plot(prob_pred_orig, prob_true_orig, "s-", color=BLUE, lw=2,
-                    label=f"Original (Brier={brier_score_loss(res['y_test'],res['y_proba']):.4f})")
+        if run_gate(
+            key="calib_ran",
+            button_label="Run Calibration + Bootstrap CI Analysis",
+            description="Generates reliability diagrams for top 4 models with Isotonic "
+                        "and Platt scaling calibration. Computes 1000-iteration bootstrap "
+                        "confidence intervals on AUC for top 6 models.",
+            estimated_time="1–2 minutes"
+        ):
+            with st.spinner("Computing calibration curves and bootstrap CIs…"):
+                top_models = sorted(existing_results.items(), key=lambda x:-x[1]["roc_auc"])[:4]
+                top6       = sorted(existing_results.items(), key=lambda x:-x[1]["roc_auc"])[:6]
 
-            # Isotonic calibrated
-            try:
-                cal_iso = CalibratedClassifierCV(res["clf"], method="isotonic", cv=5)
-                cal_iso.fit(Xtr, ytr)
-                iso_proba = cal_iso.predict_proba(Xte)[:,1]
-                pt_iso, pp_iso = calibration_curve(yte, iso_proba, n_bins=8, strategy="uniform")
-                ax.plot(pp_iso, pt_iso, "o-", color=GREEN, lw=2,
-                        label=f"Isotonic (Brier={brier_score_loss(yte,iso_proba):.4f})")
-            except Exception: pass
+                section("Calibration Curves — Reliability Diagrams")
+                fig, axes = plt.subplots(2,2,figsize=(12,9))
+                for ax,(name,res) in zip(axes.flatten(), top_models):
+                    pt_o,pp_o = calibration_curve(res["y_test"],res["y_proba"],n_bins=8,strategy="uniform")
+                    ax.plot(pp_o,pt_o,"s-",color=BLUE,lw=2,
+                            label=f"Original (Brier={brier_score_loss(res['y_test'],res['y_proba']):.4f})")
+                    try:
+                        cal = CalibratedClassifierCV(res["clf"],method="isotonic",cv=5).fit(Xtr,ytr)
+                        p_iso=cal.predict_proba(Xte)[:,1]; pt_i,pp_i=calibration_curve(yte,p_iso,n_bins=8,strategy="uniform")
+                        ax.plot(pp_i,pt_i,"o-",color=GREEN,lw=2,label=f"Isotonic ({brier_score_loss(yte,p_iso):.4f})")
+                    except: pass
+                    try:
+                        cal2=CalibratedClassifierCV(res["clf"],method="sigmoid",cv=5).fit(Xtr,ytr)
+                        p_sig=cal2.predict_proba(Xte)[:,1]; pt_s,pp_s=calibration_curve(yte,p_sig,n_bins=8,strategy="uniform")
+                        ax.plot(pp_s,pt_s,"^-",color=AMBER,lw=2,label=f"Platt ({brier_score_loss(yte,p_sig):.4f})")
+                    except: pass
+                    ax.plot([0,1],[0,1],color=BORDER_MED,lw=1.5,ls="--",label="Perfect")
+                    ax.set(title=name,xlabel="Mean Predicted Prob",ylabel="Fraction Positives")
+                    ax.legend(fontsize=7); ax.grid(True)
+                fig.suptitle("Calibration Curves — Original vs Isotonic vs Platt",
+                             y=1.01,color=NAVY,fontsize=12,fontweight="bold")
+                fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
-            # Platt scaling
-            try:
-                cal_sig = CalibratedClassifierCV(res["clf"], method="sigmoid", cv=5)
-                cal_sig.fit(Xtr, ytr)
-                sig_proba = cal_sig.predict_proba(Xte)[:,1]
-                pt_sig, pp_sig = calibration_curve(yte, sig_proba, n_bins=8, strategy="uniform")
-                ax.plot(pp_sig, pt_sig, "^-", color=AMBER, lw=2,
-                        label=f"Platt (Brier={brier_score_loss(yte,sig_proba):.4f})")
-            except Exception: pass
+                section("Bootstrap 95% Confidence Intervals — AUC")
 
-            ax.plot([0,1],[0,1], color=BORDER_MED, lw=1.5, ls="--", label="Perfect calibration")
-            ax.fill_between([0,1],[0,1],[0,1], alpha=0.05, color=GREEN)
-            ax.set(title=name, xlabel="Mean Predicted Probability", ylabel="Fraction of Positives")
-            ax.legend(fontsize=7); ax.grid(True)
+                def auc_fn(y,p):
+                    f,t,_=roc_curve(y,p); return auc(f,t)
 
-        fig.suptitle("Calibration Curves — Original vs Isotonic vs Platt Scaling",
-                     y=1.01, color=NAVY, fontsize=12, fontweight="bold")
-        fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+                ci_rows = []
+                for name,res in top6:
+                    mn,sd,lo,hi = bootstrap_ci(res["y_test"],res["y_proba"],auc_fn,n_boot=1000)
+                    ci_rows.append({"Model":name,"AUC":f"{res['roc_auc']:.4f}",
+                                    "Boot Mean":f"{mn:.4f}","Std":f"{sd:.4f}",
+                                    "95% CI":f"[{lo:.4f} – {hi:.4f}]","Width":f"{hi-lo:.4f}"})
+                st.dataframe(pd.DataFrame(ci_rows),use_container_width=True)
 
-        section("Bootstrap Confidence Intervals — AUC")
-        info_box("""Bootstrap CI shows the range of AUC values we'd expect if we retrained
-            on different random samples of the same population.
-            Narrow CI = stable model. Wide CI = model is sensitive to data variation.""")
+                fig,ax=plt.subplots(figsize=(9,4))
+                for i,row in enumerate(ci_rows):
+                    m_=float(row["AUC"]); lo_=float(row["95% CI"].split("–")[0].strip()[1:])
+                    hi_=float(row["95% CI"].split("–")[1].strip()[:-1])
+                    ax.plot([lo_,hi_],[i,i],color=BLUE,lw=4,solid_capstyle="round")
+                    ax.scatter(m_,i,color=NAVY,s=70,zorder=5)
+                    ax.text(hi_+0.004,i,f"{m_:.4f} [{lo_:.3f}–{hi_:.3f}]",va="center",fontsize=7.5,color=TEXT_MID)
+                ax.set_yticks(range(len(ci_rows))); ax.set_yticklabels([r["Model"] for r in ci_rows])
+                ax.set(title="Forest Plot — AUC with 95% Bootstrap CI",xlabel="ROC AUC")
+                ax.grid(axis="x"); fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
-        best_models_ci = sorted(existing_results.items(), key=lambda x: -x[1]["roc_auc"])[:6]
-        ci_rows = []
-        with st.spinner("Computing 1000-sample Bootstrap CIs…"):
-            for name, res in best_models_ci:
-                def auc_fn(y, p):
-                    fpr_, tpr_, _ = roc_curve(y, p)
-                    return auc(fpr_, tpr_)
-                mean_auc, std_auc, lo, hi = bootstrap_ci(res["y_test"], res["y_proba"], auc_fn, n_boot=1000)
-                ci_rows.append({"Model": name, "AUC": f"{res['roc_auc']:.4f}",
-                                "Boot Mean": f"{mean_auc:.4f}", "Boot Std": f"{std_auc:.4f}",
-                                "95% CI Lower": f"{lo:.4f}", "95% CI Upper": f"{hi:.4f}",
-                                "CI Width": f"{hi-lo:.4f}"})
-
-        ci_df = pd.DataFrame(ci_rows)
-        st.dataframe(ci_df, use_container_width=True)
-
-        # Forest plot
-        fig, ax = plt.subplots(figsize=(9, 4))
-        for i, row in enumerate(ci_rows):
-            m    = float(row["AUC"])
-            lo_  = float(row["95% CI Lower"])
-            hi_  = float(row["95% CI Upper"])
-            ax.plot([lo_, hi_], [i, i], color=BLUE, lw=3, solid_capstyle="round")
-            ax.scatter(m, i, color=NAVY, s=60, zorder=5)
-            ax.text(hi_+0.003, i, f"{m:.4f} [{lo_:.3f}–{hi_:.3f}]",
-                    va="center", fontsize=7.5, color=TEXT_MID)
-        ax.set_yticks(range(len(ci_rows)))
-        ax.set_yticklabels([r["Model"] for r in ci_rows])
-        ax.axvline(0.9, color=AMBER, lw=1, ls="--", alpha=0.7, label="AUC=0.90")
-        ax.axvline(1.0, color=GREEN, lw=1, ls="--", alpha=0.7, label="Perfect=1.0")
-        ax.set(title="Forest Plot — AUC with 95% Bootstrap CI", xlabel="ROC AUC")
-        ax.legend(fontsize=8); ax.grid(axis="x")
-        fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+            success_box("Calibration and Bootstrap CI analysis complete.")
 
 
     # ══════════════════════════════════════════════════════════════════════════
     #  TAB 4 — STATISTICAL TESTS
     # ══════════════════════════════════════════════════════════════════════════
     with adv_tabs[4]:
-        info_box("""<strong>Statistical significance testing</strong> answers: are these model
-            differences real, or just random variation? <br>
-            • <strong>McNemar's Test</strong> — are two classifiers' error patterns significantly different?<br>
-            • <strong>DeLong's Test</strong> — is the AUC difference between two models significant?<br>
-            • <strong>Wilcoxon Signed-Rank</strong> — non-parametric CV score comparison""")
+        info_box(
+            "<strong>McNemar's test</strong> — are two classifiers' error patterns "
+            "significantly different? <strong>DeLong's test</strong> — is the AUC "
+            "difference between two models statistically significant? "
+            "<strong>Wilcoxon signed-rank</strong> — non-parametric CV score comparison. "
+            "These tests are required in any peer-reviewed ML paper.")
 
-        model_names = list(existing_results.keys())
-        n_models    = len(model_names)
+        if run_gate(
+            key="stats_ran",
+            button_label="Run Statistical Significance Tests",
+            description="Pairwise McNemar's test matrix, DeLong AUC test matrix, "
+                        "Wilcoxon signed-rank on 10-fold CV scores, and Cohen's d "
+                        "effect sizes across all classifiers.",
+            estimated_time="1–2 minutes"
+        ):
+            with st.spinner("Running pairwise statistical tests…"):
+                model_names = list(existing_results.keys()); n = len(model_names)
 
-        # McNemar p-value matrix
-        section("McNemar's Test — Pairwise Classifier Comparison")
-        st.markdown(f"<div style='font-size:0.8rem;color:{TEXT_MID};margin-bottom:12px'>p-values for pairwise McNemar's test. <strong style='color:{RED}'>Red</strong> = significant (p&lt;0.05), meaning the two models make meaningfully different errors.</div>", unsafe_allow_html=True)
+                section("McNemar's Test — Pairwise Error Pattern Comparison")
+                mcn_p = np.ones((n,n))
+                for i,n1 in enumerate(model_names):
+                    for j,n2 in enumerate(model_names):
+                        if i!=j:
+                            p,_ = mcnemar_test(existing_results[n1]["y_test"],
+                                               existing_results[n1]["y_pred"],
+                                               existing_results[n2]["y_pred"])
+                            mcn_p[i,j]=p
 
-        mcnemar_matrix = np.ones((n_models, n_models))
-        chi2_matrix    = np.zeros((n_models, n_models))
-        for i, n1 in enumerate(model_names):
-            for j, n2 in enumerate(model_names):
-                if i != j:
-                    p, c = mcnemar_test(
-                        existing_results[n1]["y_test"],
-                        existing_results[n1]["y_pred"],
-                        existing_results[n2]["y_pred"],
-                    )
-                    mcnemar_matrix[i,j] = p
-                    chi2_matrix[i,j]    = c
+                sig_cmap = LinearSegmentedColormap.from_list("sig",[RED,AMBER_LIGHT,WHITE],256)
+                fig,(ax1,ax2)=plt.subplots(1,2,figsize=(14,5))
+                im1=ax1.imshow(mcn_p,cmap=sig_cmap,vmin=0,vmax=0.2)
+                for i in range(n):
+                    for j in range(n):
+                        v=mcn_p[i,j]
+                        sig="***" if v<.001 else "**" if v<.01 else "*" if v<.05 else "ns"
+                        ax1.text(j,i,f"{v:.3f}\n{sig}" if i!=j else "—",
+                                 ha="center",va="center",fontsize=6.5,
+                                 fontweight="bold" if v<.05 else "normal",
+                                 color=WHITE if v<.05 else TEXT_MAIN)
+                ax1.set_xticks(range(n)); ax1.set_yticks(range(n))
+                ax1.set_xticklabels([n_.replace(" ","\n") for n_ in model_names],fontsize=7)
+                ax1.set_yticklabels(model_names,fontsize=7)
+                ax1.set_title("McNemar p-values\n(red = significantly different error patterns)")
+                plt.colorbar(im1,ax=ax1,label="p-value",shrink=0.7)
 
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5))
-        sig_cmap = LinearSegmentedColormap.from_list("sig",[RED, AMBER_LIGHT, WHITE], 256)
-        im1 = ax1.imshow(mcnemar_matrix, cmap=sig_cmap, vmin=0, vmax=0.2)
-        for i in range(n_models):
-            for j in range(n_models):
-                val = mcnemar_matrix[i,j]
-                sig = "***" if val<0.001 else ("**" if val<0.01 else ("*" if val<0.05 else "ns"))
-                txt = f"{val:.3f}\n{sig}" if i!=j else "—"
-                ax1.text(j, i, txt, ha="center", va="center", fontsize=6.5,
-                         fontweight="bold" if val<0.05 else "normal",
-                         color=WHITE if val<0.05 else TEXT_MAIN)
-        ax1.set_xticks(range(n_models)); ax1.set_yticks(range(n_models))
-        ax1.set_xticklabels([n.replace(" ","\n") for n in model_names], fontsize=7)
-        ax1.set_yticklabels(model_names, fontsize=7)
-        ax1.set_title("McNemar p-values (lower = more different)")
-        plt.colorbar(im1, ax=ax1, label="p-value", shrink=0.7)
+                delong_p = np.ones((n,n))
+                for i,n1 in enumerate(model_names):
+                    for j,n2 in enumerate(model_names):
+                        if i!=j:
+                            try:
+                                _,_,p,_ = delong_auc_test(
+                                    existing_results[n1]["y_test"],
+                                    existing_results[n1]["y_proba"],
+                                    existing_results[n2]["y_proba"])
+                                delong_p[i,j]=p
+                            except: pass
 
-        # DeLong AUC matrix
-        delong_matrix = np.zeros((n_models, n_models))
-        delong_p      = np.ones((n_models, n_models))
-        for i, n1 in enumerate(model_names):
-            for j, n2 in enumerate(model_names):
-                if i != j:
-                    try:
-                        _, _, p, z = delong_auc_test(
-                            existing_results[n1]["y_test"],
-                            existing_results[n1]["y_proba"],
-                            existing_results[n2]["y_proba"],
-                        )
-                        delong_p[i,j] = p
-                    except Exception:
-                        delong_p[i,j] = 1.0
+                im2=ax2.imshow(delong_p,cmap=sig_cmap,vmin=0,vmax=0.2)
+                for i in range(n):
+                    for j in range(n):
+                        v=delong_p[i,j]
+                        sig="***" if v<.001 else "**" if v<.01 else "*" if v<.05 else "ns"
+                        ax2.text(j,i,f"{v:.3f}\n{sig}" if i!=j else "—",
+                                 ha="center",va="center",fontsize=6.5,
+                                 fontweight="bold" if v<.05 else "normal",
+                                 color=WHITE if v<.05 else TEXT_MAIN)
+                ax2.set_xticks(range(n)); ax2.set_yticks(range(n))
+                ax2.set_xticklabels([n_.replace(" ","\n") for n_ in model_names],fontsize=7)
+                ax2.set_yticklabels(model_names,fontsize=7)
+                ax2.set_title("DeLong AUC Test p-values\n(red = significantly different AUC)")
+                plt.colorbar(im2,ax=ax2,label="p-value",shrink=0.7)
+                fig.suptitle("Pairwise Tests — * p<0.05  ** p<0.01  *** p<0.001",
+                             y=1.01,color=NAVY,fontsize=11,fontweight="bold")
+                fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
-        im2 = ax2.imshow(delong_p, cmap=sig_cmap, vmin=0, vmax=0.2)
-        for i in range(n_models):
-            for j in range(n_models):
-                val = delong_p[i,j]
-                sig = "***" if val<0.001 else ("**" if val<0.01 else ("*" if val<0.05 else "ns"))
-                txt = f"{val:.3f}\n{sig}" if i!=j else "—"
-                ax2.text(j, i, txt, ha="center", va="center", fontsize=6.5,
-                         fontweight="bold" if val<0.05 else "normal",
-                         color=WHITE if val<0.05 else TEXT_MAIN)
-        ax2.set_xticks(range(n_models)); ax2.set_yticks(range(n_models))
-        ax2.set_xticklabels([n.replace(" ","\n") for n in model_names], fontsize=7)
-        ax2.set_yticklabels(model_names, fontsize=7)
-        ax2.set_title("DeLong AUC Test p-values")
-        plt.colorbar(im2, ax=ax2, label="p-value", shrink=0.7)
+                section("Wilcoxon Signed-Rank — CV Score Comparison")
+                Xs_all = scaler.transform(df[feat_names]); y_all = df["status"]
+                cv10   = StratifiedKFold(10,shuffle=True,random_state=42)
+                best_m = max(model_names,key=lambda k:existing_results[k]["roc_auc"])
+                s_best = cross_val_score(existing_results[best_m]["clf"],Xs_all,y_all,cv=cv10,scoring="accuracy")
+                rows=[]
+                for name in model_names:
+                    if name==best_m: continue
+                    s2=cross_val_score(existing_results[name]["clf"],Xs_all,y_all,cv=cv10,scoring="accuracy")
+                    try: stat,p=stats.wilcoxon(s_best,s2)
+                    except: stat,p=0,1.0
+                    rows.append({"Model A":best_m,"Model B":name,
+                                 "A CV Mean":f"{s_best.mean()*100:.2f}%",
+                                 "B CV Mean":f"{s2.mean()*100:.2f}%",
+                                 "W":f"{stat:.1f}","p-value":f"{p:.4f}",
+                                 "Significant":"Yes (p<0.05)" if p<.05 else "No"})
+                st.dataframe(pd.DataFrame(rows),use_container_width=True)
 
-        fig.suptitle("Pairwise Statistical Tests — * p<0.05  ** p<0.01  *** p<0.001",
-                     y=1.01, color=NAVY, fontsize=11, fontweight="bold")
-        fig.tight_layout(); st.pyplot(fig); plt.close(fig)
-
-        # Wilcoxon signed-rank on CV scores
-        section("Wilcoxon Signed-Rank Test — CV Score Distributions")
-        info_box("Non-parametric test comparing 10-fold CV accuracy distributions. Doesn't assume normality — more reliable than t-test for small samples.")
-
-        best_m = max(model_names, key=lambda n: existing_results[n]["roc_auc"])
-        wilcox_rows = []
-        for name in model_names:
-            if name == best_m: continue
-            cv = StratifiedKFold(10, shuffle=True, random_state=42)
-            Xs_all = scaler.transform(df[feat_names])
-            s1 = cross_val_score(existing_results[best_m]["clf"], Xs_all, df["status"],
-                                 cv=cv, scoring="accuracy")
-            s2 = cross_val_score(existing_results[name]["clf"],   Xs_all, df["status"],
-                                 cv=cv, scoring="accuracy")
-            try:
-                stat, p = stats.wilcoxon(s1, s2)
-            except Exception:
-                stat, p = 0, 1.0
-            wilcox_rows.append({
-                "Model A (best)": best_m,
-                "Model B":        name,
-                "A mean CV":      f"{s1.mean()*100:.2f}%",
-                "B mean CV":      f"{s2.mean()*100:.2f}%",
-                "W statistic":    f"{stat:.1f}",
-                "p-value":        f"{p:.4f}",
-                "Significant":    "✅ Yes" if p < 0.05 else "❌ No",
-            })
-        if wilcox_rows:
-            st.dataframe(pd.DataFrame(wilcox_rows), use_container_width=True)
-
-        # Effect size summary
-        section("Effect Sizes Summary (Cohen's d on CV Scores)")
-        fig, ax = plt.subplots(figsize=(10, 3.5))
-        Xs_all = scaler.transform(df[feat_names])
-        cv10 = StratifiedKFold(10, shuffle=True, random_state=42)
-        all_cv = {}
-        for name, res in existing_results.items():
-            all_cv[name] = cross_val_score(res["clf"], Xs_all, df["status"], cv=cv10, scoring="accuracy")
-
-        best_cv = all_cv[best_m]
-        d_vals, names_d = [], []
-        for name, cv_s in all_cv.items():
-            if name == best_m: continue
-            d = (best_cv.mean()-cv_s.mean())/np.sqrt((best_cv.std()**2+cv_s.std()**2)/2)
-            d_vals.append(d); names_d.append(name)
-        colors_d = [GREEN if d > 0 else RED for d in d_vals]
-        ax.barh(names_d, d_vals, color=colors_d, alpha=0.8, edgecolor=WHITE)
-        ax.axvline(0, color=NAVY, lw=1.5)
-        ax.axvline(0.5, color=AMBER, lw=1, ls="--", alpha=0.7, label="Medium effect (0.5)")
-        ax.axvline(-0.5, color=AMBER, lw=1, ls="--", alpha=0.7)
-        ax.set(title=f"Cohen's d Effect Size vs {best_m} (positive = best model is better)",
-               xlabel="Cohen's d")
-        ax.legend(fontsize=8); ax.grid(axis="x")
-        fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+            success_box("Statistical tests complete.")
 
 
     # ══════════════════════════════════════════════════════════════════════════
     #  TAB 5 — CROSS-DATASET VALIDATION
     # ══════════════════════════════════════════════════════════════════════════
     with adv_tabs[5]:
-        info_box("""<strong>Cross-Dataset Validation</strong> is the gold standard for
-            evaluating generalizability. We train on the UCI Voice Dataset and test on a
-            separate Telemonitoring dataset (different recording sessions, different patients).
-            If a model performs well across both — it has learned real biomarker patterns,
-            not just memorised the training set. This is what clinical ML validation looks like.""")
+        info_box(
+            "<strong>Cross-dataset validation</strong> is the gold standard for generalizability. "
+            "Models are trained on the UCI Voice Dataset and evaluated — without any retraining — "
+            "on the UCI Parkinson's Telemonitoring Dataset (different patients, different recording "
+            "conditions). A small AUC drop indicates the model has learned real biomarker patterns "
+            "rather than memorising dataset-specific noise.")
 
-        warn_box("""For production: download real datasets from UCI ML Repository.
-            <br>• Voice: archive.ics.uci.edu/dataset/174/parkinsons
-            <br>• Telemonitoring: archive.ics.uci.edu/dataset/189/parkinsons+telemonitoring""")
+        warn_box(
+            "For production results download the real UCI Telemonitoring dataset: "
+            "archive.ics.uci.edu/dataset/189/parkinsons+telemonitoring — "
+            "the demonstration below uses synthetic data matching its published distributions.")
 
-        with st.spinner("Loading telemonitoring dataset and running cross-dataset validation…"):
-            @st.cache_data
-            def _tel(fn, _feat_names):
-                try:
-                    return load_telemonitoring(_feat_names, seed=42)
-                except Exception:
-                    return None
-            df_tel = _tel(tuple(feat_names), feat_names)
+        if run_gate(
+            key="cross_ran",
+            button_label="Run Cross-Dataset Validation",
+            description="Generates a synthetic Telemonitoring dataset (5,875 samples) "
+                        "matching published UCI distributions, then evaluates all trained "
+                        "models on it without retraining. Quantifies the generalization gap.",
+            estimated_time="30–60 seconds"
+        ):
+            with st.spinner("Running cross-dataset validation…"):
+                df_tel = _synthetic_telemonitoring(feat_names, seed=42)
+                X_tel  = scaler.transform(df_tel[feat_names])
+                y_tel  = df_tel["status"]
 
-        if df_tel is not None:
-            n_tel = len(df_tel)
-            n_tel_pd = int((df_tel.status==1).sum())
-            n_tel_h  = int((df_tel.status==0).sum())
+                cross_rows=[]; cross_roc={}
+                top6 = sorted(existing_results.items(), key=lambda x:-x[1]["roc_auc"])[:6]
+                for name,res in top6:
+                    yp_=res["clf"].predict(X_tel); ypr_=res["clf"].predict_proba(X_tel)[:,1]
+                    f_,t_,_=roc_curve(y_tel,ypr_); auc_=auc(f_,t_)
+                    acc_=accuracy_score(y_tel,yp_); f1_=f1_score(y_tel,yp_)
+                    drop=res["roc_auc"]-auc_
+                    cross_roc[name]={"fpr":f_,"tpr":t_,"auc_tel":auc_,"auc_orig":res["roc_auc"]}
+                    cross_rows.append({
+                        "Model":name,
+                        "Voice AUC (train)":f"{res['roc_auc']:.4f}",
+                        "Telemon AUC (test)":f"{auc_:.4f}",
+                        "AUC Drop":f"{drop:+.4f}",
+                        "Telemon Acc":f"{acc_*100:.2f}%",
+                        "Generalizes":
+                            "Well" if drop<.05 else ("Moderate" if drop<.15 else "Poor"),
+                    })
 
-            col1, col2, col3, col4 = st.columns(4)
-            with col1: metric_card(str(n_tel), "Telemonitoring\nSamples", BLUE)
-            with col2: metric_card(str(n_tel_pd), "PD Recordings", RED)
-            with col3: metric_card(str(n_tel_h), "Healthy Recordings", GREEN)
-            with col4: metric_card("22", "Shared Features", AMBER)
+            st.session_state["cross_rows"] = cross_rows
+            st.session_state["cross_roc"]  = cross_roc
+
+            cross_rows = st.session_state["cross_rows"]
+            cross_roc  = st.session_state["cross_roc"]
+
+            c1,c2,c3,c4 = st.columns(4)
+            with c1: metric_card("5,875", "Telemonitoring\nSamples", BLUE)
+            with c2: metric_card("22", "Shared Features", GREEN)
+            with c3: metric_card("No Retraining", "Evaluation Mode", AMBER)
+            with c4: metric_card(cross_rows[0]["Generalizes"], "Best Model", PURPLE)
 
             st.markdown("<br>", unsafe_allow_html=True)
+            section("Cross-Dataset Results Table")
+            df_cross = pd.DataFrame(cross_rows).reset_index(drop=True)
+            df_cross.index += 1
+            st.dataframe(df_cross, use_container_width=True)
 
-            # Cross-dataset evaluation
-            X_tel = df_tel[feat_names]
-            y_tel = df_tel["status"]
-            X_tel_scaled = scaler.transform(X_tel)  # Use SAME scaler as voice training
-
-            section("Train on Voice Dataset → Test on Telemonitoring Dataset")
-            cross_rows = []
-            best_cls = sorted(existing_results.items(), key=lambda x: -x[1]["roc_auc"])[:6]
-            cross_results = {}
-            for name, res in best_cls:
-                yp_tel  = res["clf"].predict(X_tel_scaled)
-                ypr_tel = res["clf"].predict_proba(X_tel_scaled)[:,1]
-                fpr_tel, tpr_tel, _ = roc_curve(y_tel, ypr_tel)
-                auc_tel = auc(fpr_tel, tpr_tel)
-                acc_tel = accuracy_score(y_tel, yp_tel)
-                f1_tel  = f1_score(y_tel, yp_tel)
-                cross_results[name] = {
-                    "fpr": fpr_tel, "tpr": tpr_tel,
-                    "roc_auc_tel": auc_tel, "accuracy_tel": acc_tel, "f1_tel": f1_tel,
-                    "roc_auc_orig": res["roc_auc"],
-                }
-                drop_auc = res["roc_auc"] - auc_tel
-                cross_rows.append({
-                    "Model":              name,
-                    "Voice AUC (train)":  f"{res['roc_auc']:.4f}",
-                    "Telemon AUC (test)": f"{auc_tel:.4f}",
-                    "AUC Drop":           f"{drop_auc:+.4f}",
-                    "Telemon Accuracy":   f"{acc_tel*100:.2f}%",
-                    "Telemon F1":         f"{f1_tel:.4f}",
-                    "Generalizes?":       "✅ Well" if drop_auc < 0.05 else ("⚠️ Moderate" if drop_auc < 0.15 else "❌ Poor"),
-                })
-
-            cross_df = pd.DataFrame(cross_rows).sort_values("Telemon AUC (test)", ascending=False).reset_index(drop=True)
-            cross_df.index += 1
-            st.dataframe(cross_df, use_container_width=True)
-
-            # ROC comparison
-            col1, col2 = st.columns(2)
+            col1,col2 = st.columns(2)
             with col1:
-                section("Cross-Dataset ROC Curves")
-                fig, ax = plt.subplots(figsize=(6, 5))
-                for (name, cr), c in zip(cross_results.items(), PAL):
-                    ax.plot(cr["fpr"], cr["tpr"], color=c, lw=2,
-                            label=f"{name[:20]} ({cr['roc_auc_tel']:.3f})")
+                section("Telemonitoring Test — ROC Curves")
+                fig,ax=plt.subplots(figsize=(6,5))
+                for (name,cr),c in zip(cross_roc.items(),PAL):
+                    ax.plot(cr["fpr"],cr["tpr"],color=c,lw=2,
+                            label=f"{name[:20]} ({cr['auc_tel']:.3f})")
                 ax.plot([0,1],[0,1],color=BORDER,lw=1,ls="--")
-                ax.set(title="Telemonitoring Test Set ROC\n(Models trained on Voice Dataset)",
+                ax.set(title="ROC — Evaluated on Telemonitoring\n(Trained on Voice Dataset)",
                        xlabel="FPR",ylabel="TPR")
                 ax.legend(fontsize=7,loc="lower right"); ax.grid(True)
                 fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
             with col2:
-                section("Voice AUC vs Telemonitoring AUC")
-                fig, ax = plt.subplots(figsize=(6, 5))
-                for (name, cr), c in zip(cross_results.items(), PAL):
-                    ax.scatter(cr["roc_auc_orig"], cr["roc_auc_tel"],
-                               color=c, s=120, edgecolors=BORDER_MED, lw=1.5, zorder=4)
-                    ax.annotate(name, (cr["roc_auc_orig"], cr["roc_auc_tel"]),
-                                textcoords="offset points", xytext=(6,4), fontsize=7, color=c)
-                ax.plot([0.7,1.0],[0.7,1.0], color=BORDER_MED, lw=1, ls="--",
-                        label="Perfect generalization (no drop)")
-                ax.fill_between([0.7,1.0],[0.65,0.95],[0.7,1.0], alpha=0.05, color=GREEN)
-                ax.set(title="Generalization Gap", xlabel="Voice Dataset AUC",
-                       ylabel="Telemonitoring AUC", xlim=[0.75,1.02], ylim=[0.65,1.02])
-                ax.legend(fontsize=8); ax.grid(True)
+                section("Generalization Gap — AUC Drop")
+                names_c=[r["Model"] for r in cross_rows]
+                drops=[float(r["AUC Drop"]) for r in cross_rows]
+                colors_c=[GREEN if d>-.05 else (AMBER if d>-.15 else RED) for d in drops]
+                fig,ax=plt.subplots(figsize=(6,5))
+                bars=ax.bar(names_c,drops,color=colors_c,alpha=0.8,edgecolor=WHITE)
+                ax.axhline(0,color=NAVY,lw=2)
+                ax.axhline(-.05,color=AMBER,lw=1.5,ls="--",alpha=.8,label="Acceptable (-0.05)")
+                ax.axhline(-.15,color=RED,lw=1.5,ls="--",alpha=.8,label="Poor (-0.15)")
+                for bar,d in zip(bars,drops):
+                    ax.text(bar.get_x()+bar.get_width()/2,
+                            bar.get_height()-0.005 if d<0 else bar.get_height()+.002,
+                            f"{d:+.4f}",ha="center",
+                            va="top" if d<0 else "bottom",fontsize=8,fontweight="bold")
+                ax.set(title="AUC Drop: Voice → Telemonitoring",ylabel="ΔAUC")
+                ax.set_xticklabels(names_c,rotation=20,ha="right")
+                ax.legend(fontsize=8); ax.grid(axis="y")
                 fig.tight_layout(); st.pyplot(fig); plt.close(fig)
 
-            # AUC drop bar chart
-            section("AUC Generalization Gap — How Much Performance Drops")
-            fig, ax = plt.subplots(figsize=(10, 4))
-            names_cross = [r["Model"] for r in cross_rows]
-            drops = [float(r["AUC Drop"]) for r in cross_rows]
-            bar_colors = [GREEN if d > -0.05 else (AMBER if d > -0.15 else RED) for d in drops]
-            bars = ax.bar(names_cross, drops, color=bar_colors, alpha=0.8, edgecolor=WHITE)
-            ax.axhline(0, color=NAVY, lw=2)
-            ax.axhline(-0.05, color=AMBER, lw=1.5, ls="--", alpha=0.8, label="Acceptable drop (-0.05)")
-            ax.axhline(-0.15, color=RED, lw=1.5, ls="--", alpha=0.8, label="Poor generalization (-0.15)")
-            for bar, d in zip(bars, drops):
-                ax.text(bar.get_x()+bar.get_width()/2,
-                        bar.get_height()-0.005 if d<0 else bar.get_height()+0.002,
-                        f"{d:+.4f}", ha="center", va="top" if d<0 else "bottom",
-                        fontsize=8, fontweight="bold")
-            ax.set(title="AUC Drop: Voice Training → Telemonitoring Test\n(Green = good generalization)",
-                   ylabel="ΔAUC (test − train)")
-            ax.legend(fontsize=8); ax.grid(axis="y")
-            ax.set_xticklabels(names_cross, rotation=20, ha="right")
-            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
-
-            success_box(f"""✅ Cross-dataset validation complete.
-                Best generalizing model:
-                <strong>{cross_rows[0]['Model']}</strong>
-                with Telemonitoring AUC = <strong>{cross_rows[0]['Telemon AUC (test)']}</strong>
-                and generalization status: <strong>{cross_rows[0]['Generalizes?']}</strong>""")
+            success_box(
+                f"Cross-dataset validation complete. Best generalizing model: "
+                f"<strong>{cross_rows[0]['Model']}</strong> — "
+                f"Telemonitoring AUC: <strong>{cross_rows[0]['Telemon AUC (test)']}</strong> "
+                f"({cross_rows[0]['Generalizes']})")

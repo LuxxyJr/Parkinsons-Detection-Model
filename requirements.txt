@@ -10,16 +10,16 @@ scipy>=1.11.0
 # Explainability
 shap>=0.44.0
 
-# Boosting
+# Boosting (on-demand tabs)
 xgboost>=2.0.0
 lightgbm>=4.0.0
 catboost>=1.2.0
 
-# Hyperparameter tuning
+# Hyperparameter tuning (on-demand)
 optuna>=3.4.0
 
-# Class imbalance
+# Class imbalance (on-demand)
 imbalanced-learn>=0.11.0
 
-# Deep learning
+# Deep learning (on-demand)
 torch>=2.0.0
