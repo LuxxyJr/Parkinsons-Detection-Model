@@ -414,8 +414,15 @@ def compute_shap(df_hash, df, _scaler):
     rf.fit(Xs, y)
     explainer   = shap.TreeExplainer(rf)
     shap_values = explainer.shap_values(Xs)
-    # For binary: shap_values is list [class0, class1] — take class 1 (PD)
-    sv = shap_values[1] if isinstance(shap_values, list) else shap_values
+    # Newer SHAP returns 3D array (n_samples, n_features, n_classes)
+    # Older SHAP returns list [class0_array, class1_array]
+    if isinstance(shap_values, list):
+        sv = shap_values[1]          # old API — take PD class
+    elif shap_values.ndim == 3:
+        sv = shap_values[:, :, 1]    # new API — slice PD class
+    else:
+        sv = shap_values             # regression / already 2D
+    sv = np.array(sv, dtype=float)
     return sv, Xs
 
 
@@ -952,8 +959,8 @@ with tabs[5]:
 
             with col1:
                 st.markdown('<div class="section-title">SHAP Feature Importance (Mean |SHAP|)</div>', unsafe_allow_html=True)
-                mean_shap = np.abs(sv).mean(axis=0)
-                shap_idx  = np.argsort(mean_shap)[::-1]
+                mean_shap = np.abs(sv).mean(axis=0).flatten()
+                shap_idx  = np.argsort(mean_shap)[::-1].flatten().astype(int)
                 fig, ax = plt.subplots(figsize=(6, 7))
                 top15_feat = [FEAT_NAMES[i] for i in shap_idx[:15]]
                 top15_shap = mean_shap[shap_idx[:15]]
